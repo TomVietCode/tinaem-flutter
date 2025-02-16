@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "521937641436",
+    "project_id": "tinaem-b8afe",
+    "storage_bucket": "tinaem-b8afe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521937641436:android:071122c5f28275093df919",
+        "android_client_info": {
+          "package_name": "com.example.tinaem"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFem7Y4aqUrUTdGXQ-91-K_BD3ZFWtJ8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521937641436:android:a068514322e65c7a3df919",
+        "android_client_info": {
+          "package_name": "com.example.untitled"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFem7Y4aqUrUTdGXQ-91-K_BD3ZFWtJ8w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
