@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent-tab-view.dart';
-import '../screens/home/views/home_screen.dart';
-import '../screens/profile/views/profile_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/profile/profile_screen.dart';
 
 class PersistentTabScreen extends StatefulWidget {
   const PersistentTabScreen({super.key});
