@@ -3,6 +3,7 @@ import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/match/match.dart';
 
 class AppRoutes {
   static Map<String, WidgetBuilder> routes = {
@@ -10,5 +11,6 @@ class AppRoutes {
     '/sign-up': (context) => const SignUpScreen(),
     '/home': (context) => const HomeScreen(),
     '/profile': (context) => const ProfileScreen(),
+    '/match': (context) => const MatchScreen(),
   };
 }
