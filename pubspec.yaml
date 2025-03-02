@@ -17,6 +17,7 @@ dependencies:
   cloud_firestore: ^5.6.3
   dotted_border: ^2.1.0
   google_fonts: ^6.1.0
+  font_awesome_flutter: ^10.7.0
 
 
 
