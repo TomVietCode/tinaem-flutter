@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent-tab-view.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/match/match.dart';
 
 class PersistentTabScreen extends StatefulWidget {
   const PersistentTabScreen({super.key});
@@ -13,11 +14,11 @@ class PersistentTabScreen extends StatefulWidget {
 
 class _PersistentTabScreenState extends State<PersistentTabScreen> {
   final PersistentTabController _controller = PersistentTabController(initialIndex: 0);
-  Color dynamicColor = const Color(0xFFFe3c72);
 
   List<Widget> _buildScreens() {
     return [
       const HomeScreen(),
+      const MatchScreen(),
       const ProfileScreen(),
     ];
   }
@@ -28,9 +29,14 @@ class _PersistentTabScreenState extends State<PersistentTabScreen> {
         icon: Image.asset(
           "assets/tinder_logo.png",
           scale: 16,
-          color: dynamicColor,
+          // Không cần set color ở đây nữa, để activeColorPrimary quản lý
         ),
         activeColorPrimary: Colors.pinkAccent,
+        inactiveColorPrimary: Colors.grey,
+      ),
+      PersistentBottomNavBarItem(
+        icon: const Icon(CupertinoIcons.heart_fill, size: 30),
+        activeColorPrimary: Colors.red,
         inactiveColorPrimary: Colors.grey,
       ),
       PersistentBottomNavBarItem(
@@ -48,11 +54,7 @@ class _PersistentTabScreenState extends State<PersistentTabScreen> {
       controller: _controller,
       screens: _buildScreens(),
       items: _navBarsItems(),
-      onItemSelected: (value) {
-        setState(() {
-          dynamicColor = (value == 0) ? Colors.pinkAccent : Colors.grey;
-        });
-      },
+      // Xóa onItemSelected vì không cần thay đổi màu động nữa
       confineInSafeArea: true,
       backgroundColor: Colors.white,
       handleAndroidBackButtonPress: true,
