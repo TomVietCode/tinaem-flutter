@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.pink,
       ),
-      initialRoute: '/home',
+      initialRoute: '/',
       routes: AppRoutes.routes,
     );
   }
