@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:persistent_bottom_nav_bar_v2/persistent-tab-view.dart';
+import 'package:google_nav_bar/google_nav_bar.dart';
+
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/match/match.dart';
+import '../screens/message/message_screen.dart';
 
 class PersistentTabScreen extends StatefulWidget {
   const PersistentTabScreen({super.key});
@@ -13,72 +15,90 @@ class PersistentTabScreen extends StatefulWidget {
 }
 
 class _PersistentTabScreenState extends State<PersistentTabScreen> {
-  final PersistentTabController _controller = PersistentTabController(initialIndex: 0);
+  int _selectedIndex = 0;
+  final List<Widget> _screens = [
+    const SafeArea(child: HomeScreen()),
+    const SafeArea(child: MatchScreen()),
+    const SafeArea(child: MessageScreen()),
+    const SafeArea(child: ProfileScreen()),
+  ];
 
-  List<Widget> _buildScreens() {
-    return [
-      const HomeScreen(),
-      const MatchScreen(),
-      const ProfileScreen(),
-    ];
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
-  List<PersistentBottomNavBarItem> _navBarsItems() {
-    return [
-      PersistentBottomNavBarItem(
-        icon: Image.asset(
-          "assets/tinder_logo.png",
-          scale: 16,
-          // Không cần set color ở đây nữa, để activeColorPrimary quản lý
-        ),
-        activeColorPrimary: Colors.pinkAccent,
-        inactiveColorPrimary: Colors.grey,
-      ),
-      PersistentBottomNavBarItem(
-        icon: const Icon(CupertinoIcons.heart_fill, size: 30),
-        activeColorPrimary: Colors.red,
-        inactiveColorPrimary: Colors.grey,
-      ),
-      PersistentBottomNavBarItem(
-        icon: const Icon(CupertinoIcons.person_fill, size: 30),
-        activeColorPrimary: Colors.blue,
-        inactiveColorPrimary: Colors.grey,
-      ),
-    ];
+  Future<bool> _onWillPop() async {
+    if (_selectedIndex == 0) {
+      // Nếu đang ở Home, chuyển sang trang Match thay vì thoát
+      setState(() {
+        _selectedIndex = 1;
+      });
+      return false; // Ngăn không cho thoát app
+    }
+    return true; // Cho phép thoát app ở các trang khác
   }
 
   @override
   Widget build(BuildContext context) {
-    return PersistentTabView(
-      context,
-      controller: _controller,
-      screens: _buildScreens(),
-      items: _navBarsItems(),
-      // Xóa onItemSelected vì không cần thay đổi màu động nữa
-      confineInSafeArea: true,
-      backgroundColor: Colors.white,
-      handleAndroidBackButtonPress: true,
-      resizeToAvoidBottomInset: true,
-      stateManagement: true,
-      hideNavigationBarWhenKeyboardShows: true,
-      decoration: NavBarDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.grey.shade300, width: 2),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        body: _screens[_selectedIndex],
+        bottomNavigationBar: _selectedIndex == 0
+            ? null // Ẩn navbar nếu đang ở trang Home
+            : Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.9),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black12,
+                spreadRadius: 2,
+                blurRadius: 5,
+                offset: Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: GNav(
+              backgroundColor: Colors.transparent,
+              color: Colors.grey,
+              activeColor: Colors.pink,
+              tabBackgroundColor: Colors.pink.withOpacity(0.1),
+              gap: 8,
+              padding: const EdgeInsets.all(16),
+              tabs: [
+                GButton(
+                  icon: CupertinoIcons.home,
+                  leading: Image.asset(
+                    "assets/tinder_logo.png",
+                    width: 24,
+                    height: 24,
+                  ),
+                  text: 'Home',
+                ),
+                GButton(
+                  icon: CupertinoIcons.location,
+                  text: 'Match',
+                ),
+                GButton(
+                  icon: CupertinoIcons.chat_bubble,
+                  text: 'Message',
+                ),
+                GButton(
+                  icon: CupertinoIcons.person,
+                  text: 'Profile',
+                ),
+              ],
+              selectedIndex: _selectedIndex,
+              onTabChange: _onItemTapped,
+            ),
+          ),
         ),
-        colorBehindNavBar: Colors.white,
       ),
-      popAllScreensOnTapOfSelectedTab: true,
-      popActionScreens: PopActionScreensType.all,
-      itemAnimationProperties: const ItemAnimationProperties(
-        duration: Duration(milliseconds: 200),
-        curve: Curves.ease,
-      ),
-      screenTransitionAnimation: const ScreenTransitionAnimation(
-        animateTabTransition: true,
-        curve: Curves.ease,
-        duration: Duration(milliseconds: 200),
-      ),
-      navBarStyle: NavBarStyle.style8,
     );
   }
 }
