@@ -1,344 +1,197 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import '../../../data.dart'; // Import file data.dart
+import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../data.dart';
 
-class OtherProfileDetailsScreen extends StatefulWidget {
-  final User user; // Nhận đối tượng User
+class OtherProfileDetailsScreen extends StatelessWidget {
+  final User user;
+
   const OtherProfileDetailsScreen(this.user, {super.key});
-
-  @override
-  State<OtherProfileDetailsScreen> createState() => _OtherProfileDetailsScreenState();
-}
-
-class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
-  int numberPhotos = 4;
-  int currentPhoto = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
-      body: SafeArea(
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 50.0),
-                child: Column(
-                  children: [
-                    Container(
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      child: Hero(
-                        tag: "imageTag${widget.user.name}", // Sử dụng tên làm tag
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: MediaQuery.of(context).size.width,
-                              height: (MediaQuery.of(context).size.height * 0.6) - 25,
-                              decoration: BoxDecoration(
-                                image: DecorationImage(
-                                  fit: BoxFit.cover,
-                                  image: AssetImage(widget.user.photos[0]), // Hiển thị ảnh từ User
-                                ),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (currentPhoto != 0) {
-                                        setState(() {
-                                          currentPhoto = currentPhoto - 1;
-                                        });
-                                      }
-                                    },
-                                    child: Container(
-                                      width: MediaQuery.of(context).size.width,
-                                      height: (MediaQuery.of(context).size.height * 0.6) - 25,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      if (currentPhoto < (numberPhotos - 1)) {
-                                        setState(() {
-                                          currentPhoto = currentPhoto + 1;
-                                        });
-                                      }
-                                    },
-                                    child: Container(
-                                      width: MediaQuery.of(context).size.width,
-                                      height: (MediaQuery.of(context).size.height * 0.6) - 25,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.transparent,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Align(
-                              alignment: Alignment.topCenter,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 6.0),
-                                child: SizedBox(
-                                  width: MediaQuery.of(context).size.width - 20,
-                                  height: 6,
-                                  child: ListView.builder(
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: numberPhotos,
-                                    scrollDirection: Axis.horizontal,
-                                    itemBuilder: (context, int i) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(left: 8.0),
-                                        child: Container(
-                                          width: ((MediaQuery.of(context).size.width - (20 + ((numberPhotos + 1) * 8))) / numberPhotos),
-                                          decoration: BoxDecoration(
-                                            borderRadius: BorderRadius.circular(20),
-                                            border: Border.all(
-                                              color: Colors.white,
-                                              width: 0.5,
-                                            ),
-                                            color: currentPhoto == i
-                                                ? Colors.white
-                                                : Theme.of(context).colorScheme.secondary.withOpacity(0.5),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 16),
-                                child: Material(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  elevation: 3,
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(100),
-                                    onTap: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: Container(
-                                      height: 50,
-                                      width: 50,
-                                      decoration: const BoxDecoration(
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Center(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Image.asset(
-                                            'assets/icons/arrow_down.png',
-                                            scale: 20,
-                                            color: Colors.white,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 5),
-                          child: Row(
-                            children: [
-                              Text(
-                                widget.user.name, // Hiển thị tên từ User
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 25,
-                                ),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                "${widget.user.age}", // Hiển thị tuổi từ User
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w300,
-                                  fontSize: 25,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Icon(
-                                CupertinoIcons.placemark,
-                                color: Colors.grey.shade600,
-                                size: 15,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                "${widget.user.distance} away", // Hiển thị khoảng cách từ User
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w300,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Divider(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const Padding(
-                          padding: EdgeInsets.fromLTRB(16, 0, 16, 0),
-                          child: Text(
-                            "About Me",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 5, 16, 0),
-                          child: Text(
-                            widget.user.about, // Hiển thị thông tin về bản thân từ User
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: Divider(
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // 📌 Ảnh nền người dùng
+          Positioned.fill(
+            child: Image.asset(
+              user.photos[0], // Sử dụng ảnh đầu tiên trong danh sách photos
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // 📌 Hiệu ứng mờ dần ở dưới
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.3),
+                    Colors.black.withOpacity(0.7),
                   ],
                 ),
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          ),
+
+          // 📌 Nội dung chính
+          Positioned(
+            top: 40,
+            left: 16,
+            right: 16,
+            bottom: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Material(
-                  color: Colors.white,
-                  elevation: 3,
-                  borderRadius: BorderRadius.circular(100),
-                  child: InkWell(
-                    splashColor: Colors.red,
-                    borderRadius: BorderRadius.circular(100),
-                    onTap: () {
-                      // Xử lý nope
-                    },
-                    child: Container(
-                      height: 60,
-                      width: 60,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Image.asset(
-                            'assets/icons/clear.png',
-                            color: Theme.of(context).colorScheme.primary,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
+                // 🔙 Nút Back
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                const SizedBox(width: 20),
-                Material(
-                  color: Colors.white,
-                  elevation: 3,
-                  borderRadius: BorderRadius.circular(100),
-                  child: InkWell(
-                    splashColor: Colors.lightBlue,
-                    borderRadius: BorderRadius.circular(100),
-                    onTap: () {
-                      // Xử lý super like
-                    },
-                    child: Container(
-                      height: 50,
-                      width: 50,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Image.asset(
-                            'assets/icons/star.png',
-                            color: Colors.lightBlueAccent,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                    ),
+
+                const Spacer(),
+
+                // 📌 Tên, tuổi, vị trí
+                Text(
+                  "${user.name}, ${user.age}",
+                  style: GoogleFonts.poppins(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(width: 20),
-                Material(
-                  color: Colors.white,
-                  elevation: 3,
-                  borderRadius: BorderRadius.circular(100),
-                  child: InkWell(
-                    onTap: () {
-                      // Xử lý like
-                    },
-                    splashColor: Colors.greenAccent,
-                    borderRadius: BorderRadius.circular(100),
+                const SizedBox(height: 4),
+                Text(
+                  user.location.toUpperCase(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white70,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // 📌 Phần chi tiết có thể cuộn
+                Expanded(
+                  child: SingleChildScrollView(
                     child: Container(
-                      height: 60,
-                      width: 60,
+                      width: double.infinity,
                       decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(10.0),
-                          child: Image.asset(
-                            'assets/icons/heart.png',
-                            color: Colors.greenAccent,
-                            fit: BoxFit.cover,
-                          ),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(30),
                         ),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 📌 About
+                          Text(
+                            "About",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            user.about,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // 📌 Interests
+                          Text(
+                            "Interest",
+                            style: GoogleFonts.poppins(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          Wrap(
+                            spacing: 10,
+                            children: user.interests.map((interest) {
+                              return _buildInterestChip(interest);
+                            }).toList(),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 📌 Hàm tạo Interest Chip với icon phù hợp
+  Widget _buildInterestChip(String interest) {
+    IconData iconData;
+    switch (interest.toLowerCase()) {
+      case 'nature':
+        iconData = FontAwesomeIcons.leaf;
+        break;
+      case 'travel':
+        iconData = FontAwesomeIcons.plane;
+        break;
+      case 'writing':
+        iconData = FontAwesomeIcons.pen;
+        break;
+      case 'music':
+        iconData = FontAwesomeIcons.music;
+        break;
+      case 'fitness':
+        iconData = FontAwesomeIcons.dumbbell;
+        break;
+      case 'gaming':
+        iconData = FontAwesomeIcons.gamepad;
+        break;
+      case 'cooking':
+        iconData = FontAwesomeIcons.utensils;
+        break;
+      default:
+        iconData = FontAwesomeIcons.star; // Mặc định icon
+    }
+
+    return Chip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(iconData, size: 16, color: Colors.black87),
+          const SizedBox(width: 6),
+          Text(
+            interest,
+            style: GoogleFonts.poppins(
+              fontSize: 14,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        side: const BorderSide(color: Colors.purple, width: 1),
+        borderRadius: BorderRadius.circular(20),
       ),
     );
   }

@@ -1,0 +1,2 @@
+D:/Workspace/FileCode/flutter_projects/tinaem/android/app/.cxx/Debug/4a5d2d46/armeabi-v7a/CMakeFiles/edit_cache.dir
+D:/Workspace/FileCode/flutter_projects/tinaem/android/app/.cxx/Debug/4a5d2d46/armeabi-v7a/CMakeFiles/rebuild_cache.dir

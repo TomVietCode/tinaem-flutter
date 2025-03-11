@@ -1,17 +1,19 @@
 import 'dart:developer';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:persistent_bottom_nav_bar_v2/persistent-tab-view.dart';
 import 'package:swipe_cards/draggable_card.dart';
 import 'package:swipe_cards/swipe_cards.dart';
-import '../../../data.dart'; // Import file data.dart
-import 'other_profile_details_screen.dart';
+import '../../../data.dart';
+import 'other_profile_details_screen.dart'; // Đảm bảo import đúng
+import 'profile_details_screen.dart'; // Import MatchDetailsScreen
 
 class CustomSwipeItem extends SwipeItem {
   final User user;
+  final BuildContext context; // Thêm context để sử dụng Navigator
 
   CustomSwipeItem({
     required this.user,
+    required this.context,
     required Future<void> Function() likeAction,
     required Future<void> Function() nopeAction,
     required Future<void> Function() superlikeAction,
@@ -33,9 +35,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _controller = PageController(
-    initialPage: 0,
-  );
+  final _controller = PageController(initialPage: 0);
 
   int numberPhotos = 4;
   int currentPhoto = 0;
@@ -45,11 +45,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    // Khởi tạo danh sách items từ dữ liệu cứng
     for (var user in users) {
       items.add(
         CustomSwipeItem(
           user: user,
+          context: context, // Truyền context từ HomeScreen
           likeAction: () async {
             log("Like ${user.name}");
           },
@@ -61,6 +61,14 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onSlideUpdate: (SlideRegion? region) async {
             log("Region $region for ${user.name}");
+            // if (region == SlideRegion.UP) { // Sử dụng UP (in hoa)
+            //   Navigator.push(
+            //     context,
+            //     MaterialPageRoute(
+            //       builder: (context) => ProfileDetailsScreen(user), // Sử dụng user trực tiếp
+            //     ),
+            //   );
+            // }
           },
         ),
       );
@@ -76,13 +84,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  int currentUserPhoto = 0; // Ảnh đang hiển thị
+  int currentUserPhoto = 0;
   int currentIndex = 0;
-  Alignment _imageAlignment = Alignment.center; // Vị trí ban đầu của ảnh
+  Alignment _imageAlignment = Alignment.center;
 
   @override
   Widget build(BuildContext context) {
-    User user = users[currentIndex]; // Lấy user hiện tại
+    User user = users[currentIndex];
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
@@ -91,10 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              "assets/tinder_logo.png",
-              scale: 18,
-            ),
+            Image.asset("assets/tinder_logo.png", scale: 18),
             Text(
               'tinder',
               style: TextStyle(
@@ -143,10 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         gradient: const LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.center,
-                          colors: [
-                            Colors.black,
-                            Colors.transparent,
-                          ],
+                          colors: [Colors.black, Colors.transparent],
                         ),
                       ),
                     ),
@@ -156,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GestureDetector(
                             onTap: () {
                               setState(() {
-                                _imageAlignment = Alignment.centerLeft; // Di chuyển ảnh sang trái
+                                _imageAlignment = Alignment.centerLeft;
                               });
                             },
                             child: Container(color: Colors.transparent),
@@ -166,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GestureDetector(
                             onTap: () {
                               setState(() {
-                                _imageAlignment = Alignment.centerRight; // Di chuyển ảnh sang phải
+                                _imageAlignment = Alignment.centerRight;
                               });
                             },
                             child: Container(color: Colors.transparent),
@@ -174,7 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
-                    // Thanh hiển thị trạng thái ảnh
                     Align(
                       alignment: Alignment.topCenter,
                       child: Padding(
@@ -184,11 +185,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           height: 6,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children:
-                            List.generate(user.photos.length, (index) {
+                            children: List.generate(user.photos.length, (index) {
                               return Padding(
-                                padding:
-                                const EdgeInsets.symmetric(horizontal: 4.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                 child: Container(
                                   width: 20,
                                   height: 6,
@@ -217,34 +216,28 @@ class _HomeScreenState extends State<HomeScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Column(
-                                  crossAxisAlignment:
-                                  CrossAxisAlignment.start, // Canh lề trái
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       user.name,
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
-                                        fontSize:
-                                        28, // Tăng kích thước chữ cho nổi bật hơn
+                                        fontSize: 28,
                                       ),
                                     ),
-                                    const SizedBox(
-                                        height: 4), // Thêm khoảng cách nhỏ
+                                    const SizedBox(height: 4),
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment
-                                          .end, // Căn ngang với phần dưới của tên
+                                      crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Icon(
                                           user.gender == "male"
                                               ? Icons.male
-                                              : Icons
-                                              .female, // Biểu tượng giới tính
+                                              : Icons.female,
                                           color: user.gender == "male"
                                               ? Colors.blue
                                               : Colors.pink,
-                                          size:
-                                          24, // Kích thước biểu tượng phù hợp với tên
+                                          size: 24,
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
@@ -252,19 +245,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w400,
-                                            fontSize:
-                                            17, // Nhỏ hơn một chút so với tên
+                                            fontSize: 17,
                                           ),
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           "${user.distance} away",
                                           style: TextStyle(
-                                            color: Colors.white.withOpacity(
-                                                0.8), // Giảm độ sáng để không nổi bật quá
+                                            color: Colors.white.withOpacity(0.8),
                                             fontWeight: FontWeight.w400,
-                                            fontSize:
-                                            17, // Nhỏ hơn so với tên và tuổi
+                                            fontSize: 17,
                                           ),
                                         ),
                                       ],
@@ -273,12 +263,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 IconButton(
                                   onPressed: () {
-                                    pushNewScreen(
+                                    Navigator.push(
                                       context,
-                                      pageTransitionAnimation:
-                                      PageTransitionAnimation.slideUp,
-                                      withNavBar: false,
-                                      screen: OtherProfileDetailsScreen(user),
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            OtherProfileDetailsScreen(user),
+                                      ),
                                     );
                                   },
                                   icon: const Icon(
@@ -293,34 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {},
-                                  splashColor: Colors.orange,
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.orange,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Image.asset(
-                                          'assets/icons/back.png',
-                                          color: Colors.yellow,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
+                              // Nope (X) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -334,18 +297,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 60,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.red,
-                                      ),
+                                      border: Border.all(color: Colors.red),
                                     ),
                                     child: Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(12.0),
                                         child: Image.asset(
                                           'assets/icons/clear.png',
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
+                                          color: Theme.of(context).colorScheme.primary,
                                           fit: BoxFit.cover,
                                         ),
                                       ),
@@ -353,6 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
+                              // Superlike (Star) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -366,9 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 50,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.lightBlue,
-                                      ),
+                                      border: Border.all(color: Colors.lightBlue),
                                     ),
                                     child: Center(
                                       child: Padding(
@@ -383,6 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
+                              // Like (Heart) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -396,9 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 60,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.greenAccent,
-                                      ),
+                                      border: Border.all(color: Colors.greenAccent),
                                     ),
                                     child: Center(
                                       child: Padding(
@@ -406,35 +363,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                         child: Image.asset(
                                           'assets/icons/heart.png',
                                           color: Colors.greenAccent,
-                                          fit: BoxFit.cover,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () {},
-                                  splashColor: Colors.purple,
-                                  borderRadius: BorderRadius.circular(100),
-                                  child: Container(
-                                    height: 50,
-                                    width: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.purple,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Image.asset(
-                                          'assets/icons/light.png',
-                                          color: const Color.fromRGBO(
-                                              183, 71, 203, 1),
                                           fit: BoxFit.cover,
                                         ),
                                       ),
