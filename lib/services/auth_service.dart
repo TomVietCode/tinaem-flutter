@@ -38,4 +38,9 @@ class AuthService {
 
   // Kiểm tra xem người dùng có đăng nhập không
   Stream<User?> get userStream => _auth.authStateChanges();
+
+  // Lấy người dùng hiện tại
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
 }
