@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
+import 'package:tinaem/screens/chat/chat_list_screen.dart';
 
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
@@ -19,7 +20,7 @@ class _PersistentTabScreenState extends State<PersistentTabScreen> {
   final List<Widget> _screens = [
     const SafeArea(child: HomeScreen()),
     const SafeArea(child: MatchScreen()),
-    const SafeArea(child: MessageScreen()),
+    const SafeArea(child: ChatListScreen()),
     const SafeArea(child: ProfileScreen()),
   ];
 
