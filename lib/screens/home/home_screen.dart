@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:swipe_cards/draggable_card.dart';
 import 'package:swipe_cards/swipe_cards.dart';
 import '../../../data.dart';
-import 'other_profile_details_screen.dart'; // Đảm bảo import đúng
-import 'profile_details_screen.dart'; // Import MatchDetailsScreen
+import 'other_profile_details_screen.dart';
+import 'profile_details_screen.dart';
 
 class CustomSwipeItem extends SwipeItem {
   final User user;
-  final BuildContext context; // Thêm context để sử dụng Navigator
+  final BuildContext context;
 
   CustomSwipeItem({
     required this.user,
@@ -19,12 +19,12 @@ class CustomSwipeItem extends SwipeItem {
     required Future<void> Function() superlikeAction,
     required Future<void> Function(SlideRegion?) onSlideUpdate,
   }) : super(
-    content: user.name,
-    likeAction: likeAction,
-    nopeAction: nopeAction,
-    superlikeAction: superlikeAction,
-    onSlideUpdate: onSlideUpdate,
-  );
+          content: user.name,
+          likeAction: likeAction,
+          nopeAction: nopeAction,
+          superlikeAction: superlikeAction,
+          onSlideUpdate: onSlideUpdate,
+        );
 }
 
 class HomeScreen extends StatefulWidget {
@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       items.add(
         CustomSwipeItem(
           user: user,
-          context: context, // Truyền context từ HomeScreen
+          context: context,
           likeAction: () async {
             log("Like ${user.name}");
           },
@@ -61,14 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           onSlideUpdate: (SlideRegion? region) async {
             log("Region $region for ${user.name}");
-            // if (region == SlideRegion.UP) { // Sử dụng UP (in hoa)
-            //   Navigator.push(
-            //     context,
-            //     MaterialPageRoute(
-            //       builder: (context) => ProfileDetailsScreen(user), // Sử dụng user trực tiếp
-            //     ),
-            //   );
-            // }
           },
         ),
       );
@@ -96,6 +88,12 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.background,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushNamed(context, '/home');
+          },
+        ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -107,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 22,
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -263,12 +261,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 IconButton(
                                   onPressed: () {
-                                    Navigator.push(
+                                    Navigator.pushNamed(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            OtherProfileDetailsScreen(user),
-                                      ),
+                                      '/profile',
+                                      arguments: user,
                                     );
                                   },
                                   icon: const Icon(
@@ -283,7 +279,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              // Nope (X) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -312,7 +307,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
-                              // Superlike (Star) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -341,7 +335,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
-                              // Like (Heart) Button (restored from original)
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(

@@ -18,29 +18,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   TextEditingController ageController = TextEditingController();
   TextEditingController locationController = TextEditingController();
   TextEditingController aboutController = TextEditingController();
-  List<String> interests = ['Nature', 'Travel', 'Writing']; // Danh sách sở thích mẫu
+  List<String> interests = ['Nature', 'Travel', 'Writing'];
   List<String> pictures = [];
-  bool isEditing = false; // Trạng thái chỉnh sửa
+  bool isEditing = false;
 
   @override
   void initState() {
     super.initState();
-    // Giả sử bạn có một user hiện tại từ data.dart hoặc một nguồn dữ liệu khác
     final currentUser = User(
       name: "Alfredo Calzoni",
       age: 20,
       location: "Hamburg, Germany",
-      photos: [], // Sẽ cập nhật từ pictures
+      photos: [],
       about: "A good listener. I love having a good talk to know each other’s side 😊",
       interests: interests,
       gender: "male",
-      distance: "2.5 km", // Giả sử từ dữ liệu
+      distance: "2.5 km",
     );
     nameController.text = currentUser.name;
     ageController.text = currentUser.age.toString();
     locationController.text = currentUser.location;
     aboutController.text = currentUser.about;
-    pictures = currentUser.photos; // Đồng bộ hóa với danh sách ảnh
+    pictures = currentUser.photos;
   }
 
   @override
@@ -57,7 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isEditing = !isEditing;
     });
     if (!isEditing) {
-      // Lưu thông tin khi thoát chế độ chỉnh sửa (có thể cập nhật vào data hoặc backend)
       print("Saved Profile:");
       print("Name: ${nameController.text}");
       print("Age: ${ageController.text}");
@@ -88,16 +86,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.white,
       floatingActionButton: isEditing
           ? FloatingActionButton(
-        onPressed: _toggleEdit,
-        backgroundColor: Colors.green,
-        child: const Icon(CupertinoIcons.check_mark, color: Colors.white),
-      )
+              onPressed: _toggleEdit,
+              backgroundColor: Colors.green,
+              child: const Icon(CupertinoIcons.check_mark, color: Colors.white),
+            )
           : null,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          'My Profile',
+          'Profile',
           style: GoogleFonts.poppins(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -106,11 +104,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              isEditing ? Icons.close : Icons.edit,
-              color: Colors.black87,
-            ),
+            icon: const Icon(Icons.edit, color: Colors.black87),
             onPressed: _toggleEdit,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.black87),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
           ),
         ],
       ),
@@ -118,52 +119,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 📌 Ảnh nền và thông tin cơ bản
-            Stack(
-              children: [
-                Container(
-                  height: 300,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    image: pictures.isNotEmpty
-                        ? DecorationImage(
-                      image: pictures[0].startsWith('https')
-                          ? NetworkImage(pictures[0]) as ImageProvider
-                          : FileImage(File(pictures[0])) as ImageProvider,
-                      fit: BoxFit.cover,
-                    )
-                        : null, // Nếu không có ảnh, hiển thị gradient mặc định
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.purple.withOpacity(0.3),
-                        Colors.purple.withOpacity(0.7),
-                      ],
-                    ),
-                  ),
-                ),
-                // Positioned.fill(
-                //   child: pictures.isEmpty
-                //       ? Container(
-                //     decoration: BoxDecoration(
-                //       gradient: LinearGradient(
-                //         begin: Alignment.topCenter,
-                //         end: Alignment.bottomCenter,
-                //         colors: [
-                //           Colors.purple.withOpacity(0.3),
-                //           Colors.purple.withOpacity(0.7),
-                //         ],
-                //       ),
-                //     ),
-                //   )
-                //       : null,
-                // ),
-                Positioned(
-                  bottom: 20,
-                  left: 16,
-                  right: 16,
+            // Ảnh đại diện
+            Container(
+              height: 400,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                image: pictures.isNotEmpty
+                    ? DecorationImage(
+                        image: pictures[0].startsWith('https')
+                            ? NetworkImage(pictures[0])
+                            : FileImage(File(pictures[0])) as ImageProvider,
+                        fit: BoxFit.cover,
+                      )
+                    : const DecorationImage(
+                        image: AssetImage('assets/default_profile.jpg'), // Thêm ảnh mặc định nếu cần
+                        fit: BoxFit.cover,
+                      ),
+              ),
+              child: Align(
+                alignment: Alignment.bottomLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -175,191 +153,111 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       Text(
-                        "${ageController.text}, ${locationController.text}",
+                        "${ageController.text} • ${locationController.text}",
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          fontWeight: FontWeight.w500,
                           color: Colors.white70,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-
-            // 📌 Phần upload ảnh
+            // Khu vực ảnh phụ
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: 6,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 9 / 16,
+                ),
+                itemBuilder: (context, i) {
+                  return GestureDetector(
+                    onTap: () async {
+                      if (i >= pictures.length || pictures.isEmpty) {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AddPhotoScreen()),
+                        );
+                        if (result != null && result is List<String> && result.isNotEmpty) {
+                          setState(() {
+                            pictures.addAll(result);
+                          });
+                        }
+                      }
+                    },
+                    child: i < pictures.length
+                        ? Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              image: DecorationImage(
+                                image: pictures[i].startsWith('https')
+                                    ? NetworkImage(pictures[i])
+                                    : FileImage(File(pictures[i])) as ImageProvider,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          )
+                        : DottedBorder(
+                            color: Colors.grey.shade700,
+                            borderType: BorderType.RRect,
+                            radius: const Radius.circular(8),
+                            dashPattern: const [6, 6],
+                            child: Center(
+                              child: Icon(Icons.add, color: Colors.grey.shade700),
+                            ),
+                          ),
+                  );
+                },
+              ),
+            ),
+            // About
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Photos",
+                    "About Me",
                     style: GoogleFonts.poppins(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 6,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 9 / 16,
-                      ),
-                      itemBuilder: (context, i) {
-                        return GestureDetector(
-                          onTap: () async {
-                            if (i >= pictures.length || pictures.isEmpty) {
-                              final result = await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => AddPhotoScreen(),
-                                ),
-                              );
-
-                              if (result != null && result is List<String> && result.isNotEmpty) {
-                                setState(() {
-                                  pictures.addAll(result);
-                                });
-                              }
-                            }
-                          },
-                          child: Stack(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(5.0),
-                                child: i < pictures.length
-                                    ? Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade300,
-                                    borderRadius: BorderRadius.circular(8),
-                                    image: pictures[i].startsWith('https')
-                                        ? DecorationImage(
-                                      fit: BoxFit.cover,
-                                      image: NetworkImage(pictures[i]),
-                                    )
-                                        : DecorationImage(
-                                      fit: BoxFit.cover,
-                                      image: FileImage(File(pictures[i])),
-                                    ),
-                                  ),
-                                )
-                                    : DottedBorder(
-                                  color: Colors.grey.shade700,
-                                  borderType: BorderType.RRect,
-                                  radius: const Radius.circular(8),
-                                  dashPattern: const [6, 6, 6, 6],
-                                  strokeWidth: 2,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade300,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.add,
-                                        color: Colors.grey.shade700,
-                                        size: 30,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (i < pictures.length)
-                                Align(
-                                  alignment: Alignment.bottomRight,
-                                  child: Material(
-                                    elevation: 4,
-                                    borderRadius: BorderRadius.circular(100),
-                                    child: Container(
-                                      width: 30,
-                                      height: 30,
-                                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                                      child: Center(
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              pictures.removeAt(i);
-                                            });
-                                          },
-                                          child: Icon(Icons.clear, color: Colors.grey, size: 20),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                  const SizedBox(height: 8),
+                  isEditing
+                      ? TextFormField(
+                          controller: aboutController,
+                          maxLines: 5,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
                           ),
-                        );
-                      },
-                    ),
-                  ),
+                        )
+                      : Text(
+                          aboutController.text.isEmpty ? "No description yet" : aboutController.text,
+                          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+                        ),
                 ],
               ),
             ),
-
-            // 📌 Phần About và Interests
+            // Interests
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "About",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: isEditing
-                        ? TextFormField(
-                      controller: aboutController,
-                      maxLines: 5,
-                      minLines: 1,
-                      decoration: InputDecoration(
-                        hintText: "Tell us about yourself",
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    )
-                        : Text(
-                      aboutController.text.isEmpty ? "No description yet" : aboutController.text,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
                   Text(
                     "Interests",
                     style: GoogleFonts.poppins(
@@ -368,35 +266,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: interests.map((interest) {
                       return Chip(
-                        label: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _getInterestIcon(interest),
-                            const SizedBox(width: 6),
-                            Text(
-                              interest,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
+                        label: Text(
+                          interest,
+                          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
                         ),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          side: const BorderSide(color: Colors.purple, width: 1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                        backgroundColor: Colors.grey.shade200,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         deleteIcon: isEditing ? const Icon(Icons.close, size: 16) : null,
-                        onDeleted: isEditing
-                            ? () => _removeInterest(interest)
-                            : null,
+                        onDeleted: isEditing ? () => _removeInterest(interest) : null,
                       );
                     }).toList(),
                   ),
@@ -417,7 +300,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -428,42 +310,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return GestureDetector(
       onTap: () => _addInterest(interest),
       child: Chip(
-        label: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _getInterestIcon(interest),
-            const SizedBox(width: 6),
-            Text(
-              interest,
-              style: GoogleFonts.poppins(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+        label: Text(
+          interest,
+          style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
         ),
         backgroundColor: Colors.grey.shade100,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
       ),
     );
-  }
-
-  Widget _getInterestIcon(String interest) {
-    switch (interest.toLowerCase()) {
-      case 'nature':
-        return Icon(Icons.forest, size: 16, color: Colors.green);
-      case 'travel':
-        return Icon(Icons.flight, size: 16, color: Colors.blue);
-      case 'writing':
-        return Icon(Icons.edit, size: 16, color: Colors.black87);
-      case 'music':
-        return Icon(Icons.music_note, size: 16, color: Colors.blue);
-      case 'fitness':
-        return Icon(Icons.fitness_center, size: 16, color: Colors.red);
-      default:
-        return Icon(Icons.star, size: 16, color: Colors.grey);
-    }
   }
 }
