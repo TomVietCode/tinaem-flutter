@@ -44,17 +44,19 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
     if (_dragOffset.abs() > 100) {
       if (_dragOffset > 0) {
         log("Like ${widget.user.name}");
+        Navigator.pop(context, "liked"); // Trả về "liked" khi vuốt phải
       } else {
         log("Nope ${widget.user.name}");
+        Navigator.pop(context, "noped"); // Trả về "noped" khi vuốt trái
       }
-      Navigator.pop(context); // Đóng bottom sheet sau khi swipe
+    } else {
+      setState(() {
+        _dragOffset = 0.0;
+        _overlayColorLeft = Colors.transparent;
+        _overlayColorRight = Colors.transparent;
+        _swipeText = null;
+      });
     }
-    setState(() {
-      _dragOffset = 0.0;
-      _overlayColorLeft = Colors.transparent;
-      _overlayColorRight = Colors.transparent;
-      _swipeText = null;
-    });
   }
 
   @override
@@ -288,7 +290,7 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
                                 splashColor: Colors.red.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(30),
                                 onTap: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, "noped"); // Trả về "noped" khi nhấn nút "Nope"
                                 },
                                 child: Container(
                                   height: 60,
@@ -321,7 +323,7 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
                                 splashColor: Colors.blue.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(30),
                                 onTap: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context); // Đóng bottom sheet mà không chuyển user
                                 },
                                 child: Container(
                                   height: 60,
@@ -354,7 +356,7 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
                                 splashColor: Colors.green.withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(30),
                                 onTap: () {
-                                  Navigator.pop(context);
+                                  Navigator.pop(context, "liked"); // Trả về "liked" khi nhấn nút "Like"
                                 },
                                 child: Container(
                                   height: 60,
