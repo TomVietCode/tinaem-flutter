@@ -16,56 +16,16 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
   List<String> images = [];
   final ImagePicker _picker = ImagePicker();
 
-  // Thông tin Cloudinary
-  static const String cloudName = 'dutrta1ls';
-  static const String apiKey = '792899871296348';
-  static const String uploadPreset = 'tinaem_preset';
-
-  // Upload ảnh lên Cloudinary và lấy URL
-  Future<String?> _uploadToCloudinary(File file) async {
-    try {
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = uploadPreset
-        ..fields['api_key'] = apiKey
-        ..files.add(await http.MultipartFile.fromPath('file', file.path));
-
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final respStr = await response.stream.bytesToString();
-        final json = jsonDecode(respStr);
-        return json['secure_url']; // URL công khai của ảnh
-      } else {
-        throw Exception('Failed to upload to Cloudinary: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error uploading to Cloudinary: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading photo: $e')),
-      );
-      return null;
-    }
-  }
-
   // Chọn nhiều ảnh từ gallery
   Future<void> _pickFromGallery() async {
     final List<XFile>? pickedImages = await _picker.pickMultiImage(
       imageQuality: 80,
     );
     if (pickedImages != null && pickedImages.isNotEmpty && mounted) {
-      List<String> uploadedUrls = [];
-      for (XFile image in pickedImages) {
-        final String? url = await _uploadToCloudinary(File(image.path));
-        if (url != null) {
-          uploadedUrls.add(url);
-        }
-      }
-      if (uploadedUrls.isNotEmpty) {
-        setState(() {
-          images.addAll(uploadedUrls);
-        });
-        Navigator.pop(context, images); // Trả về danh sách URL
-      }
+      setState(() {
+        images.addAll(pickedImages.map((image) => image.path));
+      });
+      Navigator.pop(context, images);
     }
   }
 
@@ -76,13 +36,10 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
       imageQuality: 80,
     );
     if (image != null && mounted) {
-      final String? url = await _uploadToCloudinary(File(image.path));
-      if (url != null) {
-        setState(() {
-          images.add(url);
-        });
-        Navigator.pop(context, images);
-      }
+      setState(() {
+        images.add(image.path);
+      });
+      Navigator.pop(context, images); ộ
     }
   }
 
@@ -151,7 +108,7 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
                                 ),
                               ),
                               Text(
-                                "Photo",
+                                "Photos",
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
