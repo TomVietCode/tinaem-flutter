@@ -5,11 +5,54 @@ class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
 
-  // Tạo chat giữa 2 người (nếu chưa tồn tại)
-  Future<String> createChat(String otherUid) async {
-    String currentUid = _authService.getCurrentUser()!.uid;
-    String chatId = _getChatId(currentUid, otherUid);
+  // Ghi lại hành động quẹt
+  Future<void> recordSwipe(String toUid, String direction) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) throw Exception('User not logged in');
 
+    String swipeId = '${currentUid}_$toUid';
+    await _firestore.collection('swipes').doc(swipeId).set({
+      'fromUid': currentUid,
+      'toUid': toUid,
+      'direction': direction, // "right" hoặc "left"
+      'timestamp': Timestamp.now(),
+    }, SetOptions(merge: true)); // Ghi đè nếu đã tồn tại
+  }
+
+  // Kiểm tra xem có match không
+  Future<bool> isMatched(String otherUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return false;
+
+    // Kiểm tra xem currentUid quẹt phải otherUid chưa
+    DocumentSnapshot mySwipe = await _firestore
+        .collection('swipes')
+        .doc('${currentUid}_$otherUid')
+        .get();
+    bool iSwipedRight = mySwipe.exists && mySwipe['direction'] == 'right';
+
+    // Kiểm tra xem otherUid quẹt phải currentUid chưa
+    DocumentSnapshot theirSwipe = await _firestore
+        .collection('swipes')
+        .doc('${otherUid}_$currentUid')
+        .get();
+    bool theySwipedRight = theirSwipe.exists && theirSwipe['direction'] == 'right';
+
+    return iSwipedRight && theySwipedRight;
+  }
+
+  // Tạo chat chỉ khi đã match
+  Future<String?> createChat(String otherUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return null;
+
+    bool matched = await isMatched(otherUid);
+    if (!matched) {
+      print('Không thể tạo chat: Chưa match');
+      return null;
+    }
+
+    String chatId = _getChatId(currentUid, otherUid);
     DocumentSnapshot chatDoc = await _firestore.collection('chats').doc(chatId).get();
     if (!chatDoc.exists) {
       await _firestore.collection('chats').doc(chatId).set({
@@ -17,6 +60,9 @@ class FirestoreService {
         'last_message': '',
         'timestamp': Timestamp.now(),
       });
+      print('Đã tạo chat: $chatId');
+    } else {
+      print('Chat đã tồn tại: $chatId');
     }
     return chatId;
   }
@@ -26,9 +72,14 @@ class FirestoreService {
     return uid1.compareTo(uid2) < 0 ? '${uid1}_$uid2' : '${uid2}_$uid1';
   }
 
-  // Lấy danh sách chat
+  // Lấy danh sách chat (chỉ hiển thị khi match)
   Stream<QuerySnapshot> getChats() {
-    String currentUid = _authService.getCurrentUser()!.uid;
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      print('Không có UID người dùng');
+      return Stream.empty();
+    }
+    print('Lấy chat cho UID: $currentUid');
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: currentUid)
@@ -48,7 +99,7 @@ class FirestoreService {
 
   // Gửi tin nhắn
   Future<void> sendMessage(String chatId, String content) async {
-    String currentUid = _authService.getCurrentUser()!.uid;
+    String currentUid = getCurrentUserUid()!;
     await _firestore.collection('chats').doc(chatId).collection('messages').add({
       'sender_uid': currentUid,
       'message_content': content,
@@ -63,9 +114,42 @@ class FirestoreService {
   // Lấy thông tin người dùng
   Future<Map<String, dynamic>> getUser(String uid) async {
     DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
+    return userDoc.data() as Map<String, dynamic>? ?? {'name': 'Không tên'};
+  }
+
+  // Lấy thông tin người dùng hiện tại
+  Future<Map<String, dynamic>> getCurrentUserData() async {
+    String? uid = getCurrentUserUid();
+    if (uid == null) throw Exception('User not logged in');
+
+    DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
+    if (!userDoc.exists) {
+      // Nếu không có dữ liệu, tạo mặc định
+      Map<String, dynamic> defaultData = {
+        'name': 'New User',
+        'age': 18,
+        'location': 'Unknown',
+        'about': '',
+        'interests': [],
+        'photos': [],
+        'profile_picture': 'https://via.placeholder.com/150', // Ảnh mặc định
+        'gender': 'Khác',
+        'createdAt': Timestamp.now(),
+      };
+      await _firestore.collection('users').doc(uid).set(defaultData);
+      return defaultData;
+    }
     return userDoc.data() as Map<String, dynamic>;
   }
 
+  // Cập nhật thông tin người dùng
+  Future<void> updateUserData(Map<String, dynamic> data) async {
+    String? uid = getCurrentUserUid();
+    if (uid == null) throw Exception('User not logged in');
+
+    await _firestore.collection('users').doc(uid).update(data);
+  }
+  // Lấy UID người dùng hiện tại
   String? getCurrentUserUid() {
     return _authService.getCurrentUser()?.uid;
   }

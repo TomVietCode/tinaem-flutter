@@ -3,8 +3,8 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'add_photo_screen.dart'; // Ensure this file exists
-import '../../data.dart'; // Import data.dart to use User
+import 'add_photo_screen.dart';
+import '../../services/firestore_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,11 +18,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   TextEditingController ageController = TextEditingController();
   TextEditingController locationController = TextEditingController();
   TextEditingController aboutController = TextEditingController();
-  List<String> interests = ['Nature', 'Travel', 'Writing'];
+  List<String> interests = [];
   List<String> pictures = [];
+  String? profilePicture;
+  String gender = 'Khác';
   bool isEditing = false;
 
-  // List of available interests with corresponding icons
+  final FirestoreService _firestoreService = FirestoreService();
+
   final Map<String, IconData> interestIcons = {
     'Nature': Icons.nature,
     'Travel': Icons.flight,
@@ -33,26 +36,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     'Reading': Icons.book,
     'Gaming': Icons.videogame_asset,
   };
-
-  @override
-  void initState() {
-    super.initState();
-    final currentUser = User(
-      name: "Alfredo Calzoni",
-      age: 20,
-      location: "Hamburg, Germany",
-      photos: [],
-      about: "A good listener. I love having a good talk to know each other’s side 😊",
-      interests: interests,
-      gender: "male",
-      distance: "2.5 km",
-    );
-    nameController.text = currentUser.name;
-    ageController.text = currentUser.age.toString();
-    locationController.text = currentUser.location;
-    aboutController.text = currentUser.about;
-    pictures = currentUser.photos;
-  }
 
   @override
   void dispose() {
@@ -68,42 +51,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isEditing = !isEditing;
     });
     if (!isEditing) {
-      print("Saved Profile:");
-      print("Name: ${nameController.text}");
-      print("Age: ${ageController.text}");
-      print("Location: ${locationController.text}");
-      print("About: ${aboutController.text}");
-      print("Interests: $interests");
-      print("Pictures: $pictures");
+      _saveProfile();
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    try {
+      await _firestoreService.updateUserData({
+        'name': nameController.text,
+        'age': int.tryParse(ageController.text) ?? 18,
+        'location': locationController.text,
+        'about': aboutController.text,
+        'interests': interests,
+        'photos': pictures, // Lưu danh sách URL vào trường photos
+        'profile_picture': profilePicture,
+        'gender': gender,
+      });
+      print('Profile saved to Firestore');
+    } catch (e) {
+      print('Error saving profile: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saving profile: $e')),
+      );
     }
   }
 
   void _addInterest(String interest) {
-    setState(() {
-      if (!interests.contains(interest)) {
-        interests.add(interest);
-      }
-    });
+    if (isEditing) {
+      setState(() {
+        if (!interests.contains(interest)) {
+          interests.add(interest);
+        }
+      });
+    }
   }
 
   void _removeInterest(String interest) {
-    setState(() {
-      interests.remove(interest);
-    });
+    if (isEditing) {
+      setState(() {
+        interests.remove(interest);
+      });
+    }
   }
 
   void _updateAvatar() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AddPhotoScreen()),
+      MaterialPageRoute(builder: (context) => const AddPhotoScreen()),
     );
     if (result != null && result is List<String> && result.isNotEmpty) {
       setState(() {
-        if (pictures.isEmpty) {
-          pictures.add(result[0]); // Add as first photo if list is empty
-        } else {
-          pictures[0] = result[0]; // Replace the first photo (avatar)
-        }
+        profilePicture = result[0]; // Cập nhật ảnh đại diện
       });
     }
   }
@@ -114,10 +112,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.white,
       floatingActionButton: isEditing
           ? FloatingActionButton(
-              onPressed: _toggleEdit,
-              backgroundColor: Colors.green,
-              child: const Icon(CupertinoIcons.check_mark, color: Colors.white),
-            )
+        onPressed: _toggleEdit,
+        backgroundColor: Colors.green,
+        child: const Icon(CupertinoIcons.check_mark, color: Colors.white),
+      )
           : null,
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -139,304 +137,351 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              // Avatar and Name Section
-              Row(
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _firestoreService.getCurrentUserData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: Text('No user data found'));
+          }
+
+          final userData = snapshot.data!;
+          if (!isEditing) {
+            nameController.text = userData['name'] ?? 'New User';
+            ageController.text = (userData['age'] ?? 18).toString();
+            locationController.text = userData['location'] ?? 'Unknown';
+            aboutController.text = userData['about'] ?? '';
+            interests = List<String>.from(userData['interests'] ?? []);
+            pictures = List<String>.from(userData['photos'] ?? []); // Load photos từ Firestore
+            profilePicture = userData['profile_picture'] ?? 'https://via.placeholder.com/150';
+            gender = userData['gender'] ?? 'Khác';
+          }
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: isEditing ? _updateAvatar : null,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: pictures.isNotEmpty
-                              ? (pictures[0].startsWith('https')
-                                  ? NetworkImage(pictures[0])
-                                  : FileImage(File(pictures[0])) as ImageProvider)
-                              : const AssetImage('assets/default_profile.jpg') as ImageProvider,
-                        ),
-                        if (isEditing)
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
-                              shape: BoxShape.circle,
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: isEditing ? _updateAvatar : null,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircleAvatar(
+                              radius: 50,
+                              backgroundImage: profilePicture != null && profilePicture!.isNotEmpty
+                                  ? NetworkImage(profilePicture!)
+                                  : const AssetImage('assets/default_profile.jpg') as ImageProvider,
                             ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.white,
-                              size: 30,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        isEditing
-                            ? TextFormField(
-                                controller: nameController,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                            if (isEditing)
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.4),
+                                  shape: BoxShape.circle,
                                 ),
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey.shade100,
-                                ),
-                              )
-                            : Text(
-                                nameController.text,
-                                style: GoogleFonts.poppins(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 30,
                                 ),
                               ),
-                        const SizedBox(height: 8),
-                        isEditing
-                            ? Row(
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: ageController,
-                                      keyboardType: TextInputType.number,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade700,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            isEditing
+                                ? TextFormField(
+                              controller: nameController,
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade100,
+                              ),
+                            )
+                                : Text(
+                              nameController.text,
+                              style: GoogleFonts.poppins(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            isEditing
+                                ? Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: ageController,
+                                    keyboardType: TextInputType.number,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: "Age",
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
                                       ),
-                                      decoration: InputDecoration(
-                                        hintText: "Age",
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.grey.shade100,
-                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey.shade100,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: locationController,
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 14,
-                                        color: Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: locationController,
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: "Location",
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
                                       ),
-                                      decoration: InputDecoration(
-                                        hintText: "Location",
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                        filled: true,
-                                        fillColor: Colors.grey.shade100,
-                                      ),
+                                      filled: true,
+                                      fillColor: Colors.grey.shade100,
                                     ),
                                   ),
-                                ],
-                              )
-                            : Text(
-                                "${ageController.text} • ${locationController.text}",
+                                ),
+                              ],
+                            )
+                                : Text(
+                              "${ageController.text} • ${locationController.text}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            isEditing
+                                ? DropdownButtonFormField<String>(
+                              value: gender,
+                              items: ['Nam', 'Nữ', 'Khác']
+                                  .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  gender = value ?? 'Khác';
+                                });
+                              },
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey.shade100,
+                              ),
+                            )
+                                : Text(
+                              "Giới tính: $gender",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              onPressed: _toggleEdit,
+                              icon: Icon(
+                                isEditing ? Icons.cancel : Icons.edit,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              label: Text(
+                                isEditing ? "Cancel" : "Edit Profile",
                                 style: GoogleFonts.poppins(
                                   fontSize: 14,
-                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
                                 ),
                               ),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: _toggleEdit,
-                          icon: Icon(
-                            isEditing ? Icons.cancel : Icons.edit,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          label: Text(
-                            isEditing ? "Cancel" : "Edit Profile",
-                            style: GoogleFonts.poppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isEditing ? Colors.redAccent : Colors.blue,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                elevation: 2,
+                              ),
                             ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isEditing ? Colors.redAccent : Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            elevation: 2,
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "Photos",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              // Photos Section
-              Text(
-                "Photos",
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: isEditing ? pictures.length + 1 : pictures.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 9 / 16,
-                ),
-                itemBuilder: (context, i) {
-                  if (i < pictures.length) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: pictures[i].startsWith('https')
-                              ? NetworkImage(pictures[i])
-                              : FileImage(File(pictures[i])) as ImageProvider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    );
-                  } else if (isEditing && i == pictures.length) {
-                    return GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => AddPhotoScreen()),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: isEditing ? pictures.length + 1 : pictures.length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 9 / 16,
+                    ),
+                    itemBuilder: (context, i) {
+                      if (i < pictures.length) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: NetworkImage(pictures[i]), // Ảnh từ URL Cloudinary
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         );
-                        if (result != null && result is List<String> && result.isNotEmpty) {
-                          setState(() {
-                            pictures.addAll(result);
-                          });
-                        }
-                      },
-                      child: DottedBorder(
-                        color: Colors.grey.shade700,
-                        borderType: BorderType.RRect,
-                        radius: const Radius.circular(8),
-                        dashPattern: const [6, 6],
-                        child: Center(
-                          child: Icon(Icons.add, color: Colors.grey.shade700),
-                        ),
+                      } else if (isEditing && i == pictures.length) {
+                        return GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const AddPhotoScreen()),
+                            );
+                            if (result != null && result is List<String> && result.isNotEmpty) {
+                              setState(() {
+                                pictures.addAll(result); // Thêm URL từ Cloudinary vào pictures
+                              });
+                            }
+                          },
+                          child: DottedBorder(
+                            color: Colors.grey.shade700,
+                            borderType: BorderType.RRect,
+                            radius: const Radius.circular(8),
+                            dashPattern: const [6, 6],
+                            child: Center(
+                              child: Icon(Icons.add, color: Colors.grey.shade700),
+                            ),
+                          ),
+                        );
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "About Me",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  isEditing
+                      ? TextFormField(
+                    controller: aboutController,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
                       ),
-                    );
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              // About Section
-              Text(
-                "About Me",
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              isEditing
-                  ? TextFormField(
-                      controller: aboutController,
-                      maxLines: 5,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    )
-                  : Text(
-                      aboutController.text.isEmpty ? "No description yet" : aboutController.text,
-                      style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
                     ),
-              const SizedBox(height: 24),
-              // Interests Section
-              Text(
-                "Interests",
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: interests.map((interest) {
-                  return Chip(
-                    avatar: Icon(
-                      interestIcons[interest] ?? Icons.star,
-                      color: Colors.white,
-                      size: 18,
+                  )
+                      : Text(
+                    aboutController.text.isEmpty ? "No description yet" : aboutController.text,
+                    style: GoogleFonts.poppins(fontSize: 14, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    "Interests",
+                    style: GoogleFonts.poppins(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    label: Text(
-                      interest,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    backgroundColor: Colors.blue.shade400,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    elevation: 2,
-                    deleteIcon: isEditing
-                        ? const Icon(Icons.close, size: 16, color: Colors.white)
-                        : null,
-                    onDeleted: isEditing ? () => _removeInterest(interest) : null,
-                  );
-                }).toList(),
-              ),
-              if (isEditing)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Wrap(
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: interestIcons.keys
-                        .where((interest) => !interests.contains(interest))
-                        .map((interest) => _buildInterestChip(interest))
-                        .toList(),
+                    children: interests.map((interest) {
+                      return Chip(
+                        avatar: Icon(
+                          interestIcons[interest] ?? Icons.star,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        label: Text(
+                          interest,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        backgroundColor: Colors.blue.shade400,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        elevation: 2,
+                        deleteIcon: isEditing
+                            ? const Icon(Icons.close, size: 16, color: Colors.white)
+                            : null,
+                        onDeleted: isEditing ? () => _removeInterest(interest) : null,
+                      );
+                    }).toList(),
                   ),
-                ),
-            ],
-          ),
-        ),
+                  if (isEditing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: interestIcons.keys
+                            .where((interest) => !interests.contains(interest))
+                            .map((interest) => _buildInterestChip(interest))
+                            .toList(),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
