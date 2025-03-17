@@ -5,6 +5,67 @@ class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
 
+  // Lấy danh sách người dùng để gợi ý
+  Stream<List<Map<String, dynamic>>> getSuggestedUsers() async* {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      yield [];
+      return;
+    }
+
+    // Lấy thông tin người dùng hiện tại
+    Map<String, dynamic> currentUser = await getCurrentUserData();
+    String lookingFor = currentUser['looking_for'] ?? 'Both';
+
+    // Lấy danh sách những người đã quẹt
+    QuerySnapshot swipes = await _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: currentUid)
+        .get();
+    List<String> swipedUids = swipes.docs.map((doc) => doc['toUid'] as String).toList();
+    swipedUids.add(currentUid); // Không hiển thị chính mình
+
+    // Truy vấn người dùng phù hợp
+    Query<Map<String, dynamic>> query = _firestore.collection('users');
+    if (lookingFor != 'Both') {
+      query = query.where('gender', isEqualTo: lookingFor);
+    }
+    query = query.where(FieldPath.documentId, whereNotIn: swipedUids.take(10).toList());
+
+    yield* query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.data()..['uid'] = doc.id).toList();
+    });
+  }
+
+  // Thêm vào danh sách favorites
+  Future<void> addToFavorites(String favoriteUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) throw Exception('User not logged in');
+
+    await _firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('favorites')
+        .doc(favoriteUid)
+        .set({
+      'userId': favoriteUid,
+      'addedAt': Timestamp.now(),
+    });
+  }
+
+  // Lấy danh sách favorites
+  Future<List<String>> getFavorites() async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return [];
+
+    QuerySnapshot favorites = await _firestore
+        .collection('users')
+        .doc(currentUid)
+        .collection('favorites')
+        .get();
+    return favorites.docs.map((doc) => doc['userId'] as String).toList();
+  }
+
   // Ghi lại hành động quẹt
   Future<void> recordSwipe(String toUid, String direction) async {
     String? currentUid = getCurrentUserUid();
