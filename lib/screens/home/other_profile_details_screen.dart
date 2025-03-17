@@ -114,8 +114,8 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
                                   fit: BoxFit.cover,
                                   image: widget.user.photos != null && widget.user.photos.isNotEmpty
                                       ? (widget.user.photos[0].startsWith('https')
-                                          ? NetworkImage(widget.user.photos[0])
-                                          : AssetImage(widget.user.photos[0]) as ImageProvider)
+                                      ? NetworkImage(widget.user.photos[0])
+                                      : AssetImage(widget.user.photos[0]) as ImageProvider)
                                       : const AssetImage('assets/default_profile.jpg'),
                                 ),
                                 borderRadius: const BorderRadius.vertical(
@@ -234,49 +234,49 @@ class _OtherProfileDetailsScreenState extends State<OtherProfileDetailsScreen> {
                               const SizedBox(height: 8),
                               widget.user.interests == null || widget.user.interests.isEmpty
                                   ? Text(
-                                      "No interests listed",
+                                "No interests listed",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              )
+                                  : Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: widget.user.interests.map((interest) {
+                                  IconData icon = {
+                                    'Nature': Icons.nature,
+                                    'Travel': Icons.flight,
+                                    'Writing': Icons.edit,
+                                    'Music': Icons.music_note,
+                                    'Fitness': Icons.fitness_center,
+                                    'Cooking': Icons.local_dining,
+                                    'Reading': Icons.book,
+                                    'Gaming': Icons.videogame_asset,
+                                  }[interest] ?? Icons.star;
+                                  return Chip(
+                                    avatar: Icon(
+                                      icon,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                    label: Text(
+                                      interest,
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
-                                        color: Colors.black54,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                    )
-                                  : Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: widget.user.interests.map((interest) {
-                                        IconData icon = {
-                                          'Nature': Icons.nature,
-                                          'Travel': Icons.flight,
-                                          'Writing': Icons.edit,
-                                          'Music': Icons.music_note,
-                                          'Fitness': Icons.fitness_center,
-                                          'Cooking': Icons.local_dining,
-                                          'Reading': Icons.book,
-                                          'Gaming': Icons.videogame_asset,
-                                        }[interest] ?? Icons.star;
-                                        return Chip(
-                                          avatar: Icon(
-                                            icon,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                          label: Text(
-                                            interest,
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 14,
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          backgroundColor: Colors.blue.shade400,
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          elevation: 2,
-                                        );
-                                      }).toList(),
                                     ),
+                                    backgroundColor: Colors.blue.shade400,
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    elevation: 2,
+                                  );
+                                }).toList(),
+                              ),
                             ],
                           ),
                         ),

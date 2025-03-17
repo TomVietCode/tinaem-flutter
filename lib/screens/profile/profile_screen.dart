@@ -23,13 +23,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<String> interests = [];
   List<String> pictures = [];
   String? profilePicture;
-  String gender = 'Khác';
+  String gender = 'Other';
   bool isEditing = false;
   bool isLoading = false;
+  bool isNewUser = true; // Thêm biến để kiểm tra
 
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Thông tin Cloudinary
   static const String cloudName = 'dutrta1ls';
   static const String apiKey = '792899871296348';
   static const String uploadPreset = 'tinaem_preset';
@@ -54,7 +54,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  // Upload ảnh lên Cloudinary và trả về URL
   Future<String?> _uploadToCloudinary(File file) async {
     try {
       final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
@@ -91,18 +90,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     setState(() {
-      isLoading = true; // Bật loading
+      isLoading = true;
     });
 
     try {
-      // Upload ảnh mới lên Cloudinary
       List<String> updatedPictures = [];
       for (String pathOrUrl in pictures) {
         if (pathOrUrl.startsWith('http')) {
-          // Nếu là URL từ Firestore, giữ nguyên
           updatedPictures.add(pathOrUrl);
         } else {
-          // Nếu là đường dẫn cục bộ, upload lên Cloudinary
           final String? url = await _uploadToCloudinary(File(pathOrUrl));
           if (url != null) {
             updatedPictures.add(url);
@@ -110,11 +106,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-      // Cập nhật profilePicture nếu là đường dẫn cục bộ
       String? updatedProfilePicture = profilePicture;
       if (profilePicture != null && !profilePicture!.startsWith('http')) {
         updatedProfilePicture = await _uploadToCloudinary(File(profilePicture!));
       }
+
+      // Kiểm tra xem hồ sơ đã đầy đủ chưa
+      bool isProfileComplete = updatedProfilePicture != null &&
+          updatedPictures.isNotEmpty &&
+          nameController.text.isNotEmpty &&
+          aboutController.text.isNotEmpty;
 
       // Lưu vào Firestore
       await _firestoreService.updateUserData({
@@ -123,16 +124,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'location': locationController.text,
         'about': aboutController.text,
         'interests': interests,
-        'photos': updatedPictures, // Lưu danh sách URL
+        'photos': updatedPictures,
         'profile_picture': updatedProfilePicture ?? profilePicture,
         'gender': gender,
+        'isNewUser': !isProfileComplete, // Chỉ đặt false nếu hồ sơ đầy đủ
       });
 
-      // Cập nhật giao diện với URL mới
       setState(() {
         pictures = updatedPictures;
         profilePicture = updatedProfilePicture ?? profilePicture;
+        isNewUser = !isProfileComplete; // Cập nhật trạng thái local
       });
+
+      if (isProfileComplete) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Please complete your profile to continue')),
+        );
+      }
 
       print('Profile saved to Firestore');
     } catch (e) {
@@ -142,7 +153,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } finally {
       setState(() {
-        isLoading = false; // Tắt loading
+        isLoading = false;
       });
     }
   }
@@ -168,7 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _removePicture(int index) {
     if (isEditing) {
       setState(() {
-        pictures.removeAt(index); // Xóa ảnh khỏi danh sách
+        pictures.removeAt(index);
       });
     }
   }
@@ -180,7 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (result != null && result is List<String> && result.isNotEmpty) {
       setState(() {
-        profilePicture = result[0]; // Cập nhật ảnh đại diện (đường dẫn cục bộ)
+        profilePicture = result[0];
       });
     }
   }
@@ -242,7 +253,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 interests = List<String>.from(userData['interests'] ?? []);
                 pictures = List<String>.from(userData['photos'] ?? []);
                 profilePicture = userData['profile_picture'] ?? 'https://via.placeholder.com/150';
-                gender = userData['gender'] ?? 'Khác';
+                gender = userData['gender'] ?? 'Other';
+                isNewUser = userData['isNewUser'] ?? true;
               }
 
               return SingleChildScrollView(
@@ -251,6 +263,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isNewUser)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'Please update your profile to continue',
+                            style: TextStyle(color: Colors.red, fontSize: 16),
+                          ),
+                        ),
                       const SizedBox(height: 20),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,12 +390,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 isEditing
                                     ? DropdownButtonFormField<String>(
                                   value: gender,
-                                  items: ['Nam', 'Nữ', 'Khác']
+                                  items: ['Male', 'Female', 'Other']
                                       .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                                       .toList(),
                                   onChanged: (value) {
                                     setState(() {
-                                      gender = value ?? 'Khác';
+                                      gender = value ?? 'Other';
                                     });
                                   },
                                   decoration: InputDecoration(
@@ -388,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 )
                                     : Text(
-                                  "Giới tính: $gender",
+                                  "Gender: $gender",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     color: Colors.grey.shade700,
@@ -490,7 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                                 if (result != null && result is List<String> && result.isNotEmpty) {
                                   setState(() {
-                                    pictures.addAll(result); // Thêm đường dẫn cục bộ
+                                    pictures.addAll(result);
                                   });
                                 }
                               },

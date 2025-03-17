@@ -33,7 +33,7 @@ class _SignInScreenState extends State<SignInScreen> {
         password: passwordController.text.trim(),
       );
 
-      // Điều hướng sau khi đăng nhập thành công
+      // Navigate to home screen after successful sign-in
       Navigator.pushReplacementNamed(context, '/home');
     } on FirebaseAuthException catch (e) {
       setState(() {
@@ -52,8 +52,8 @@ class _SignInScreenState extends State<SignInScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFFFFFF), // Màu hồng nhạt ở trên
-              Color(0xFFFF6262), // Màu hồng đậm ở dưới
+              Color(0xFFFFFFFF), // White at the top
+              Color(0xFFFF6262), // Pink at the bottom
             ],
           ),
         ),
@@ -63,9 +63,9 @@ class _SignInScreenState extends State<SignInScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Tiêu đề đăng nhập
+                // Sign-in title
                 const Text(
-                  'Đăng nhập vào Tinaem',
+                  'Sign In to Tinaem',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -86,10 +86,10 @@ class _SignInScreenState extends State<SignInScreen> {
                     errorMsg: _errorMsg,
                     validator: (val) {
                       if (val!.isEmpty) {
-                        return 'Vui lòng nhập vào trường này';
+                        return 'Please fill in this field';
                       } else if (!RegExp(r'^[\w-\.]+@([\w-]+.)+[\w-]{2,4}$')
                           .hasMatch(val)) {
-                        return 'Vui lòng nhập đúng định dạng email';
+                        return 'Please enter a valid email';
                       }
                       return null;
                     },
@@ -110,9 +110,9 @@ class _SignInScreenState extends State<SignInScreen> {
                     errorMsg: _errorMsg,
                     validator: (val) {
                       if (val!.isEmpty) {
-                        return 'Vui lòng nhập vào trường này';
+                        return 'Please fill in this field';
                       } else if (val.length < 6) {
-                        return 'Mật khẩu phải có ít nhất 6 ký tự';
+                        return 'Password must be at least 6 characters';
                       }
                       return null;
                     },
@@ -151,7 +151,7 @@ class _SignInScreenState extends State<SignInScreen> {
                       padding: EdgeInsets.symmetric(
                           horizontal: 25, vertical: 5),
                       child: Text(
-                        'Đăng nhập',
+                        'Sign In',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.pinkAccent,
@@ -171,7 +171,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     Navigator.pushNamed(context, '/sign-up');
                   },
                   child: const Text(
-                    "Chưa có tài khoản? Đăng ký ngay",
+                    "Don't have an account? Sign up now",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -188,7 +188,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     Navigator.pushNamed(context, '/forgot-password');
                   },
                   child: const Text(
-                    "Quên mật khẩu?",
+                    "Forgot password?",
                     style: TextStyle(
                       color: Colors.white70,
                       fontSize: 15,

@@ -21,6 +21,7 @@ class AppRoutes {
   static const String otherProfileDetails = '/other_profile_details_screen';
   static const String settings = '/settings';
 
+
   static Map<String, WidgetBuilder> routes = {
     signIn: (context) => const SignInScreen(),
     signUp: (context) => const SignUpScreen(),
@@ -35,10 +36,9 @@ class AppRoutes {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final user = args?['user'];
       if (user == null) {
-        // Handle the case where user is null (optional, depends on your app logic)
         return const Scaffold(body: Center(child: Text('User data not provided')));
       }
-      return OtherProfileDetailsScreen(user: user); // Pass the user to the screen
+      return OtherProfileDetailsScreen(user: user);
     },
   };
 }

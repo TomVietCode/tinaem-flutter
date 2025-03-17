@@ -39,7 +39,7 @@ class _AddPhotoScreenState extends State<AddPhotoScreen> {
       setState(() {
         images.add(image.path);
       });
-      Navigator.pop(context, images); ộ
+      Navigator.pop(context, images);
     }
   }
 

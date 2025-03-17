@@ -18,9 +18,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final passwordController = TextEditingController();
   final nameController = TextEditingController();
   final ageController = TextEditingController();
-  final hobbyController = TextEditingController();
 
-  String selectedGender = 'Nam';
+  String selectedGender = 'Male';
+  String selectedLookingFor = 'Both';
   bool signUpRequired = false;
   String? _errorMsg;
   IconData iconPassword = CupertinoIcons.eye_fill;
@@ -35,14 +35,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
     });
 
     try {
-      // Đăng ký tài khoản Firebase Authentication
+      // Register with Firebase Authentication
       UserCredential userCredential =
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      // Lưu thông tin tài khoản vào Firestore
+      // Save user info to Firestore with isNewUser = true
       await FirebaseFirestore.instance
           .collection('users')
           .doc(userCredential.user!.uid)
@@ -50,23 +50,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
         'name': nameController.text.trim(),
         'age': int.parse(ageController.text.trim()),
         'gender': selectedGender,
-        'hobby': hobbyController.text.trim(),
+        'looking_for': selectedLookingFor,
         'email': emailController.text.trim(),
         'createdAt': Timestamp.now(),
+        'isNewUser': true, // Thêm trường này
       });
 
-      // Chuyển đến trang chính sau khi đăng ký thành công
-      Navigator.pushReplacementNamed(context, '/home');
+      // Navigate to ProfileScreen for new users
+      Navigator.pushReplacementNamed(context, '/profile');
     } on FirebaseAuthException catch (e) {
       setState(() {
         signUpRequired = false;
-        _errorMsg = e.message ?? 'Đăng ký thất bại';
+        _errorMsg = e.message ?? 'Sign up failed';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Giữ nguyên phần build như trước
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -74,8 +76,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFFFFFFFF), // Màu trắng
-              Color(0xFFFF6262), // Màu hồng đậm
+              Color(0xFFFFFFFF),
+              Color(0xFFFF6262),
             ],
           ),
         ),
@@ -87,9 +89,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Tiêu đề
                   const Text(
-                    'Đăng ký tài khoản',
+                    'Sign Up',
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -97,38 +98,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 30),
-
-                  // Nhập Tên
                   MyTextField(
                     controller: nameController,
-                    hintText: 'Tên',
+                    hintText: 'Name',
                     obscureText: false,
                     keyboardType: TextInputType.text,
                     prefixIcon: const Icon(CupertinoIcons.person),
                     validator: (val) =>
-                    val!.isEmpty ? 'Vui lòng nhập tên' : null,
+                    val!.isEmpty ? 'Please enter your name' : null,
                   ),
                   const SizedBox(height: 15),
-
-                  // Nhập Tuổi
                   MyTextField(
                     controller: ageController,
-                    hintText: 'Tuổi',
+                    hintText: 'Age',
                     obscureText: false,
                     keyboardType: TextInputType.number,
                     prefixIcon: const Icon(CupertinoIcons.number),
                     validator: (val) {
-                      if (val!.isEmpty) return 'Vui lòng nhập tuổi';
+                      if (val!.isEmpty) return 'Please enter your age';
                       final age = int.tryParse(val);
                       if (age == null || age < 18) {
-                        return 'Bạn phải trên 18 tuổi';
+                        return 'You must be over 18';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 15),
-
-                  // Chọn Giới Tính
                   Container(
                     padding:
                     const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
@@ -139,7 +134,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     child: DropdownButtonFormField<String>(
                       value: selectedGender,
                       decoration: const InputDecoration(border: InputBorder.none),
-                      items: ['Nam', 'Nữ', 'Khác']
+                      items: ['Male', 'Female', 'Other']
                           .map((gender) => DropdownMenuItem(
                         value: gender,
                         child: Text(gender),
@@ -153,18 +148,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-
-                  // Nhập Sở Thích
-                  MyTextField(
-                    controller: hobbyController,
-                    hintText: 'Sở thích',
-                    obscureText: false,
-                    keyboardType: TextInputType.text,
-                    prefixIcon: const Icon(CupertinoIcons.heart),
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedLookingFor,
+                      decoration: const InputDecoration(border: InputBorder.none),
+                      items: ['Male', 'Female', 'Both']
+                          .map((lookingFor) => DropdownMenuItem(
+                        value: lookingFor,
+                        child: Text('Looking for: $lookingFor'),
+                      ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedLookingFor = value!;
+                        });
+                      },
+                    ),
                   ),
                   const SizedBox(height: 15),
-
-                  // Nhập Email
                   MyTextField(
                     controller: emailController,
                     hintText: 'Email',
@@ -172,19 +179,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: const Icon(CupertinoIcons.mail_solid),
                     validator: (val) =>
-                    val!.isEmpty ? 'Vui lòng nhập email' : null,
+                    val!.isEmpty ? 'Please enter your email' : null,
                   ),
                   const SizedBox(height: 15),
-
-                  // Nhập Mật Khẩu
                   MyTextField(
                     controller: passwordController,
-                    hintText: 'Mật khẩu',
+                    hintText: 'Password',
                     obscureText: obscurePassword,
                     keyboardType: TextInputType.visiblePassword,
                     prefixIcon: const Icon(CupertinoIcons.lock_fill),
-                    validator: (val) =>
-                    val!.length < 6 ? 'Mật khẩu phải có ít nhất 6 ký tự' : null,
+                    validator: (val) => val!.length < 6
+                        ? 'Password must be at least 6 characters'
+                        : null,
                     suffixIcon: IconButton(
                       onPressed: () {
                         setState(() {
@@ -198,8 +204,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Nút Đăng Ký
                   signUpRequired
                       ? const CircularProgressIndicator()
                       : SizedBox(
@@ -217,7 +221,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         padding: EdgeInsets.symmetric(
                             horizontal: 25, vertical: 5),
                         child: Text(
-                          'Đăng ký',
+                          'Sign Up',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -227,14 +231,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // Sign up link
                   GestureDetector(
                     onTap: () {
                       Navigator.pushNamed(context, '/');
                     },
                     child: const Text(
-                      "Đã có tài khoản? Đăng nhập",
+                      "Already have an account? Log in",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
