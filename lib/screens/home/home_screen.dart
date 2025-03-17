@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../services/firestore_service.dart'; // Import FirestoreService
 import '../../routes/app_routes.dart';
+import 'other_profile_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         title: Padding(
-          padding: const EdgeInsets.only(right: 50.0), // Margin bên trái 16 pixels
+          padding: const EdgeInsets.only(right: 50.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -48,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _firestoreService.getSuggestedUsers(), // Lấy danh sách người dùng từ Firestore
+        stream: _firestoreService.getSuggestedUsers(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -78,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Widget riêng cho stack thẻ và logic vuốt
 class SwipeCardStack extends StatefulWidget {
   final List<Map<String, dynamic>> usersList;
   final int currentIndex;
@@ -105,11 +105,13 @@ class _SwipeCardStackState extends State<SwipeCardStack> {
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
     _dragOffset.value += details.delta.dx;
     if (_dragOffset.value > 10) {
-      _overlayColor.value = Colors.green.withOpacity(0.7 * (_dragOffset.value / 100).clamp(0, 1));
-
+      _overlayColor.value =
+          Colors.green.withOpacity(0.7 * (_dragOffset.value / 100).clamp(0, 1));
+      _swipeText.value = 'LIKE';
     } else if (_dragOffset.value < -10) {
-      _overlayColor.value = Colors.red.withOpacity(0.7 * (_dragOffset.value.abs() / 100).clamp(0, 1));
-
+      _overlayColor.value =
+          Colors.red.withOpacity(0.7 * (_dragOffset.value.abs() / 100).clamp(0, 1));
+      _swipeText.value = 'NOPE';
     } else {
       _overlayColor.value = Colors.transparent;
       _swipeText.value = null;
@@ -124,6 +126,7 @@ class _SwipeCardStackState extends State<SwipeCardStack> {
 
       if (_dragOffset.value > 0) {
         log("Like ${widget.usersList[widget.currentIndex]['name']}");
+        _checkAndCreateChat(toUid);
       } else {
         log("Nope ${widget.usersList[widget.currentIndex]['name']}");
       }
@@ -141,17 +144,33 @@ class _SwipeCardStackState extends State<SwipeCardStack> {
     }
   }
 
+  void _checkAndCreateChat(String toUid) async {
+    bool isMatched = await widget.firestoreService.isMatched(toUid);
+    if (isMatched) {
+      String? matchId = await widget.firestoreService.createMatch(toUid);
+      String? chatId = await widget.firestoreService.createChat(toUid);
+      if (matchId != null && chatId != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+              Text('Bạn đã match với ${widget.usersList[widget.currentIndex]['name']}!')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Hiển thị user phía sau
         if (widget.currentIndex + 1 < widget.usersList.length)
           SwipeCard(
             user: widget.usersList[widget.currentIndex + 1],
             isFront: false,
+            onSwipeComplete: widget.onSwipeComplete,
+            usersList: widget.usersList,
+            currentIndex: widget.currentIndex,
           ),
-        // User hiện tại (thẻ chính)
         if (widget.usersList.isNotEmpty)
           GestureDetector(
             onHorizontalDragUpdate: _onHorizontalDragUpdate,
@@ -163,20 +182,30 @@ class _SwipeCardStackState extends State<SwipeCardStack> {
               overlayColor: _overlayColor,
               swipeText: _swipeText,
               onNope: () {
-                widget.firestoreService.recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'left');
+                widget.firestoreService
+                    .recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'left');
                 int newIndex = (widget.currentIndex + 1) % widget.usersList.length;
                 widget.onSwipeComplete(newIndex);
               },
               onSuperLike: () {
-                widget.firestoreService.recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'right');
+                widget.firestoreService
+                    .addToFavorites(widget.usersList[widget.currentIndex]['uid']);
+                widget.firestoreService
+                    .recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'right');
+                _checkAndCreateChat(widget.usersList[widget.currentIndex]['uid']);
                 int newIndex = (widget.currentIndex + 1) % widget.usersList.length;
                 widget.onSwipeComplete(newIndex);
               },
               onLike: () {
-                widget.firestoreService.recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'right');
+                widget.firestoreService
+                    .recordSwipe(widget.usersList[widget.currentIndex]['uid'], 'right');
+                _checkAndCreateChat(widget.usersList[widget.currentIndex]['uid']);
                 int newIndex = (widget.currentIndex + 1) % widget.usersList.length;
                 widget.onSwipeComplete(newIndex);
               },
+              onSwipeComplete: widget.onSwipeComplete,
+              usersList: widget.usersList,
+              currentIndex: widget.currentIndex,
             ),
           ),
       ],
@@ -184,7 +213,6 @@ class _SwipeCardStackState extends State<SwipeCardStack> {
   }
 }
 
-// Widget riêng cho từng thẻ
 class SwipeCard extends StatelessWidget {
   final Map<String, dynamic> user;
   final bool isFront;
@@ -194,6 +222,9 @@ class SwipeCard extends StatelessWidget {
   final VoidCallback? onNope;
   final VoidCallback? onSuperLike;
   final VoidCallback? onLike;
+  final Function(int) onSwipeComplete;
+  final List<Map<String, dynamic>> usersList;
+  final int currentIndex;
 
   const SwipeCard({
     Key? key,
@@ -205,6 +236,9 @@ class SwipeCard extends StatelessWidget {
     this.onNope,
     this.onSuperLike,
     this.onLike,
+    required this.onSwipeComplete,
+    required this.usersList,
+    required this.currentIndex,
   }) : super(key: key);
 
   @override
@@ -256,27 +290,27 @@ class SwipeCard extends StatelessWidget {
                   builder: (context, textValue, child) {
                     return textValue != null
                         ? Positioned(
-                            top: MediaQuery.of(context).size.height * 0.4,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Text(
-                                textValue,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 40,
-                                  fontWeight: FontWeight.bold,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black26,
-                                      offset: Offset(2, 2),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
-                                ),
+                      top: MediaQuery.of(context).size.height * 0.4,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Text(
+                          textValue,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black26,
+                                offset: Offset(2, 2),
+                                blurRadius: 4,
                               ),
-                            ),
-                          )
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
                         : const SizedBox.shrink();
                   },
                 ),
@@ -345,10 +379,17 @@ class SwipeCard extends StatelessWidget {
                                 ],
                               ),
                               IconButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Tính năng xem chi tiết tạm thời bị tắt')),
+                                onPressed: () async {
+                                  final result = await showModalBottomSheet<String>(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (context) => OtherProfileDetailsScreen(user: user),
                                   );
+                                  if (result == "liked" || result == "noped") {
+                                    int newIndex = (currentIndex + 1) % usersList.length;
+                                    onSwipeComplete(newIndex);
+                                  }
                                 },
                                 icon: const Icon(
                                   CupertinoIcons.info_circle_fill,

@@ -80,6 +80,36 @@ class FirestoreService {
     }, SetOptions(merge: true)); // Ghi đè nếu đã tồn tại
   }
 
+  // Tạo Match
+  Future<String?> createMatch(String otherUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return null;
+
+    bool matched = await isMatched(otherUid);
+    if (!matched) {
+      print('Không thể tạo match: Chưa match');
+      return null;
+    }
+
+    String matchId = _getMatchId(currentUid, otherUid);
+    DocumentSnapshot matchDoc = await _firestore.collection('matches').doc(matchId).get();
+    if (!matchDoc.exists) {
+      await _firestore.collection('matches').doc(matchId).set({
+        'participants': [currentUid, otherUid],
+        'createdAt': Timestamp.now(),
+      });
+      print('Đã tạo match: $matchId');
+    } else {
+      print('Match đã tồn tại: $matchId');
+    }
+    return matchId;
+  }
+
+  // Lấy matchId
+  String _getMatchId(String uid1, String uid2) {
+    return uid1.compareTo(uid2) < 0 ? '${uid1}_$uid2' : '${uid2}_$uid1';
+  }
+
   // Kiểm tra xem có match không
   Future<bool> isMatched(String otherUid) async {
     String? currentUid = getCurrentUserUid();
