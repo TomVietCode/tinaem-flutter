@@ -3,10 +3,9 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'add_photo_screen.dart';
 import '../../services/firestore_service.dart';
+import '../../services/cloudinary_service.dart'; // Import CloudinaryService
+import 'add_photo_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,13 +25,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String gender = 'Other';
   bool isEditing = false;
   bool isLoading = false;
-  bool isNewUser = true; // Thêm biến để kiểm tra
+  bool isNewUser = true;
 
   final FirestoreService _firestoreService = FirestoreService();
-
-  static const String cloudName = 'dutrta1ls';
-  static const String apiKey = '792899871296348';
-  static const String uploadPreset = 'tinaem_preset';
+  final CloudinaryService _cloudinaryService = CloudinaryService(); // Khởi tạo CloudinaryService
 
   final Map<String, IconData> interestIcons = {
     'Nature': Icons.nature,
@@ -54,31 +50,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Future<String?> _uploadToCloudinary(File file) async {
-    try {
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
-      final request = http.MultipartRequest('POST', uri)
-        ..fields['upload_preset'] = uploadPreset
-        ..fields['api_key'] = apiKey
-        ..files.add(await http.MultipartFile.fromPath('file', file.path));
-
-      final response = await request.send();
-      if (response.statusCode == 200) {
-        final respStr = await response.stream.bytesToString();
-        final json = jsonDecode(respStr);
-        return json['secure_url'];
-      } else {
-        throw Exception('Failed to upload to Cloudinary: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error uploading to Cloudinary: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error uploading photo: $e')),
-      );
-      return null;
-    }
-  }
-
   void _toggleEdit() {
     setState(() {
       isEditing = !isEditing;
@@ -94,60 +65,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      // Tạo map dữ liệu ban đầu với các trường không phải ảnh
+      Map<String, dynamic> userData = {
+        'name': nameController.text.trim(),
+        'age': int.tryParse(ageController.text.trim()) ?? 18,
+        'location': locationController.text.trim(),
+        'about': aboutController.text.trim(),
+        'interests': interests,
+        'gender': gender,
+      };
+
+      print('Initial user data (before photo upload): $userData');
+
+      // Upload ảnh trong pictures
       List<String> updatedPictures = [];
       for (String pathOrUrl in pictures) {
         if (pathOrUrl.startsWith('http')) {
           updatedPictures.add(pathOrUrl);
         } else {
-          final String? url = await _uploadToCloudinary(File(pathOrUrl));
+          print('Uploading photo: $pathOrUrl');
+          final String? url = await _cloudinaryService.uploadFile(File(pathOrUrl));
           if (url != null) {
             updatedPictures.add(url);
+            print('Photo uploaded successfully: $url');
+          } else {
+            print('Failed to upload photo: $pathOrUrl');
+            // Không ném lỗi, tiếp tục với các trường khác
           }
         }
       }
 
+      // Upload profile picture
       String? updatedProfilePicture = profilePicture;
       if (profilePicture != null && !profilePicture!.startsWith('http')) {
-        updatedProfilePicture = await _uploadToCloudinary(File(profilePicture!));
+        print('Uploading profile picture: $profilePicture');
+        updatedProfilePicture = await _cloudinaryService.uploadFile(File(profilePicture!));
+        if (updatedProfilePicture != null) {
+          print('Profile picture uploaded successfully: $updatedProfilePicture');
+        } else {
+          print('Failed to upload profile picture');
+          // Không ném lỗi, tiếp tục với các trường khác
+        }
       }
 
-      // Kiểm tra xem hồ sơ đã đầy đủ chưa
+      // Thêm dữ liệu ảnh vào userData
+      userData['photos'] = updatedPictures;
+      userData['profile_picture'] = updatedProfilePicture;
+
+      // Kiểm tra hồ sơ đầy đủ
       bool isProfileComplete = updatedProfilePicture != null &&
           updatedPictures.isNotEmpty &&
           nameController.text.isNotEmpty &&
           aboutController.text.isNotEmpty;
+      userData['isNewUser'] = !isProfileComplete;
+
+      // Debug dữ liệu cuối cùng trước khi lưu
+      print('Final user data to save: $userData');
 
       // Lưu vào Firestore
-      await _firestoreService.updateUserData({
-        'name': nameController.text,
-        'age': int.tryParse(ageController.text) ?? 18,
-        'location': locationController.text,
-        'about': aboutController.text,
-        'interests': interests,
-        'photos': updatedPictures,
-        'profile_picture': updatedProfilePicture ?? profilePicture,
-        'gender': gender,
-        'isNewUser': !isProfileComplete, // Chỉ đặt false nếu hồ sơ đầy đủ
-      });
+      await _firestoreService.updateUserData(userData);
 
+      // Cập nhật trạng thái local
       setState(() {
         pictures = updatedPictures;
-        profilePicture = updatedProfilePicture ?? profilePicture;
-        isNewUser = !isProfileComplete; // Cập nhật trạng thái local
+        profilePicture = updatedProfilePicture;
+        isNewUser = !isProfileComplete;
       });
 
       if (isProfileComplete) {
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please complete your profile to continue')),
+          const SnackBar(content: Text('Please complete your profile to continue')),
         );
       }
 
       print('Profile saved to Firestore');
     } catch (e) {
-      print('Error saving profile: $e');
+      print('Error in _saveProfile: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving profile: $e')),
       );

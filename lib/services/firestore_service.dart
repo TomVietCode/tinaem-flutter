@@ -212,15 +212,18 @@ class FirestoreService {
   }
 
   // Gửi tin nhắn
-  Future<void> sendMessage(String chatId, String content) async {
-    String currentUid = getCurrentUserUid()!;
+  Future<void> sendMessage(String chatId, String content, {String? imageUrl}) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) throw Exception('User not logged in');
+
     await _firestore.collection('chats').doc(chatId).collection('messages').add({
       'sender_uid': currentUid,
       'message_content': content,
+      'image_url': imageUrl, // Thêm trường image_url nếu có
       'timestamp': Timestamp.now(),
     });
     await _firestore.collection('chats').doc(chatId).update({
-      'last_message': content,
+      'last_message': content.isNotEmpty ? content : 'Sent an image',
       'timestamp': Timestamp.now(),
     });
   }

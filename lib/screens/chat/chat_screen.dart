@@ -88,8 +88,13 @@ class ChatScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         var message = messages[index];
                         bool isMe = message['sender_uid'] == currentUid;
+                        // Kiểm tra sự tồn tại của image_url
+                        String? imageUrl = message.data().toString().contains('image_url')
+                            ? message['image_url'] as String?
+                            : null;
                         return ChatBubble(
                           message: message['message_content'],
+                          imageUrl: imageUrl, // Truyền imageUrl (có thể null)
                           isMe: isMe,
                         );
                       },

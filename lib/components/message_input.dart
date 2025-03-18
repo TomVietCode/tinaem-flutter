@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/firestore_service.dart';
+import '../services/cloudinary_service.dart'; // Import CloudinaryService
 
 class MessageInput extends StatefulWidget {
   final String chatId;
@@ -13,8 +16,11 @@ class MessageInput extends StatefulWidget {
 class _MessageInputState extends State<MessageInput> {
   final TextEditingController _controller = TextEditingController();
   final FirestoreService _firestoreService = FirestoreService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
+  final ImagePicker _picker = ImagePicker();
   bool _hasText = false;
   bool _showEmojiPicker = false;
+  bool _isSendingImage = false;
 
   void _sendMessage() {
     if (_controller.text.trim().isNotEmpty) {
@@ -27,7 +33,6 @@ class _MessageInputState extends State<MessageInput> {
   void _toggleEmojiPicker() {
     setState(() {
       _showEmojiPicker = !_showEmojiPicker;
-      // Ẩn bàn phím khi mở emoji picker
       if (_showEmojiPicker) FocusScope.of(context).unfocus();
     });
   }
@@ -35,6 +40,36 @@ class _MessageInputState extends State<MessageInput> {
   void _insertEmoji(String emoji) {
     _controller.text += emoji;
     setState(() => _hasText = true);
+  }
+
+  // Chọn và gửi ảnh
+  Future<void> _sendImage() async {
+    try {
+      setState(() {
+        _isSendingImage = true;
+      });
+
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) {
+        setState(() => _isSendingImage = false);
+        return;
+      }
+
+      final String? imageUrl = await _cloudinaryService.uploadFile(File(image.path));
+      if (imageUrl != null) {
+        await _firestoreService.sendMessage(widget.chatId, '', imageUrl: imageUrl);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload image')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending image: $e')),
+      );
+    } finally {
+      setState(() => _isSendingImage = false);
+    }
   }
 
   @override
@@ -53,6 +88,16 @@ class _MessageInputState extends State<MessageInput> {
                   color: Colors.grey,
                 ),
                 onPressed: _toggleEmojiPicker,
+              ),
+              IconButton(
+                icon: _isSendingImage
+                    ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+                    : const Icon(Icons.photo, color: Colors.grey),
+                onPressed: _isSendingImage ? null : _sendImage, // Gửi ảnh khi nhấn
               ),
               Expanded(
                 child: TextField(
