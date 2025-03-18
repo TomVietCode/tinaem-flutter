@@ -114,7 +114,6 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
       backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // PageView để hiển thị nhiều ảnh
           Positioned.fill(
             child: PageView.builder(
               controller: _pageController,
@@ -166,174 +165,192 @@ class _MatchDetailsScreenState extends State<MatchDetailsScreen> {
                     onPressed: () => Navigator.pop(context),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  "${widget.user['name'] ?? 'Unknown'}, ${widget.user['age'] ?? 'N/A'}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  (widget.user['location'] ?? 'Unknown').toUpperCase(),
-                  style: GoogleFonts.poppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Nút Previous và Next cho PageView
-                if (photos.length > 1)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _currentPhotoIndex > 0
-                            ? () {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                            : null, // Vô hiệu hóa nếu ở ảnh đầu tiên
-                        style: ElevatedButton.styleFrom(
-                          shape: const CircleBorder(),
-                          padding: const EdgeInsets.all(10),
-                          backgroundColor: Colors.white.withOpacity(0.8),
-                        ),
-                        child: const Icon(Icons.arrow_back, color: Colors.black),
-                      ),
-                      const SizedBox(width: 20),
-                      ElevatedButton(
-                        onPressed: _currentPhotoIndex < photos.length - 1
-                            ? () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                          );
-                        }
-                            : null, // Vô hiệu hóa nếu ở ảnh cuối cùng
-                        style: ElevatedButton.styleFrom(
-                          shape: const CircleBorder(),
-                          padding: const EdgeInsets.all(10),
-                          backgroundColor: Colors.white.withOpacity(0.8),
-                        ),
-                        child: const Icon(Icons.arrow_forward, color: Colors.black),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 20),
-                // Phần "About" với GestureDetector để vuốt
                 Expanded(
-                  child: GestureDetector(
-                    onVerticalDragUpdate: (details) {
-                      if (details.delta.dy > 5 && _showAboutSection) {
-                        // Vuốt xuống: ẩn phần About
-                        setState(() {
-                          _showAboutSection = false;
-                        });
-                      } else if (details.delta.dy < -5 && !_showAboutSection) {
-                        // Vuốt lên: hiện phần About
-                        setState(() {
-                          _showAboutSection = true;
-                        });
-                      }
-                    },
-                    child: AnimatedOpacity(
-                      opacity: _showAboutSection ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 300),
-                      child: SingleChildScrollView(
-                        child: Container(
-                          width: double.infinity,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  child: Stack(
+                    children: [
+                      // Phần "About" với GestureDetector để vuốt
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: GestureDetector(
+                          onVerticalDragUpdate: (details) {
+                            if (details.delta.dy > 5 && _showAboutSection) {
+                              // Vuốt xuống: ẩn phần About
+                              setState(() {
+                                _showAboutSection = false;
+                              });
+                            } else if (details.delta.dy < -5 && !_showAboutSection) {
+                              // Vuốt lên: hiện phần About
+                              setState(() {
+                                _showAboutSection = true;
+                              });
+                            }
+                          },
+                          child: AnimatedOpacity(
+                            opacity: _showAboutSection ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 300),
+                            child: SingleChildScrollView(
+                              child: Container(
+                                width: double.infinity,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                                ),
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "About",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      widget.user['about'] ?? 'No description yet',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 14,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Text(
+                                      "Interest",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 10,
+                                      children: interests.map((interest) => _buildInterestChip(interest)).toList(),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        if (widget.source == 'favorites') ...[
+                                          _buildActionButton(
+                                            icon: Icons.star_border,
+                                            color: Colors.blue,
+                                            label: "Unfavorite",
+                                            onTap: () => _unfavorite(uid),
+                                          ),
+                                          if (!_hasLiked)
+                                            _buildActionButton(
+                                              icon: Icons.favorite,
+                                              color: Colors.green,
+                                              label: "Like",
+                                              onTap: () => _like(uid),
+                                            ),
+                                        ],
+                                        if (widget.source == 'likes') ...[
+                                          _buildActionButton(
+                                            icon: Icons.favorite,
+                                            color: Colors.green,
+                                            label: "Like",
+                                            onTap: () => _like(uid),
+                                          ),
+                                          _buildActionButton(
+                                            icon: Icons.close,
+                                            color: Colors.red,
+                                            label: "Nope",
+                                            onTap: () => _nope(uid),
+                                          ),
+                                        ],
+                                        if (widget.source == 'myLikes') ...[
+                                          _buildActionButton(
+                                            icon: Icons.favorite_border,
+                                            color: Colors.red,
+                                            label: "Unlike",
+                                            onTap: () => _unlike(uid),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                          padding: const EdgeInsets.all(20),
+                        ),
+                      ),
+                      // Hiệu ứng vuốt xuống cho name, age, location
+                      AnimatedAlign(
+                        alignment: _showAboutSection ? Alignment.center : Alignment.bottomCenter,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 20.0),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                "About",
+                                "${widget.user['name'] ?? 'Unknown'}, ${widget.user['age'] ?? 'N/A'}",
                                 style: GoogleFonts.poppins(
-                                  fontSize: 18,
+                                  fontSize: 28,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 4),
                               Text(
-                                widget.user['about'] ?? 'No description yet',
+                                (widget.user['location'] ?? 'Unknown').toUpperCase(),
                                 style: GoogleFonts.poppins(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                "Interest",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white70,
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 10,
-                                children: interests.map((interest) => _buildInterestChip(interest)).toList(),
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  if (widget.source == 'favorites') ...[
-                                    _buildActionButton(
-                                      icon: Icons.star_border,
-                                      color: Colors.blue,
-                                      label: "Unfavorite",
-                                      onTap: () => _unfavorite(uid),
-                                    ),
-                                    if (!_hasLiked)
-                                      _buildActionButton(
-                                        icon: Icons.favorite,
-                                        color: Colors.green,
-                                        label: "Like",
-                                        onTap: () => _like(uid),
+                              if (photos.length > 1)
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    ElevatedButton(
+                                      onPressed: _currentPhotoIndex > 0
+                                          ? () {
+                                        _pageController.previousPage(
+                                          duration: const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      }
+                                          : null,
+                                      style: ElevatedButton.styleFrom(
+                                        shape: const CircleBorder(),
+                                        padding: const EdgeInsets.all(10),
+                                        backgroundColor: Colors.white.withOpacity(0.8),
                                       ),
-                                  ],
-                                  if (widget.source == 'likes') ...[
-                                    _buildActionButton(
-                                      icon: Icons.favorite,
-                                      color: Colors.green,
-                                      label: "Like",
-                                      onTap: () => _like(uid),
+                                      child: const Icon(Icons.arrow_back, color: Colors.black),
                                     ),
-                                    _buildActionButton(
-                                      icon: Icons.close,
-                                      color: Colors.red,
-                                      label: "Nope",
-                                      onTap: () => _nope(uid),
-                                    ),
-                                  ],
-                                  if (widget.source == 'myLikes') ...[
-                                    _buildActionButton(
-                                      icon: Icons.favorite_border,
-                                      color: Colors.red,
-                                      label: "Unlike",
-                                      onTap: () => _unlike(uid),
+                                    const SizedBox(width: 20),
+                                    ElevatedButton(
+                                      onPressed: _currentPhotoIndex < photos.length - 1
+                                          ? () {
+                                        _pageController.nextPage(
+                                          duration: const Duration(milliseconds: 300),
+                                          curve: Curves.easeInOut,
+                                        );
+                                      }
+                                          : null,
+                                      style: ElevatedButton.styleFrom(
+                                        shape: const CircleBorder(),
+                                        padding: const EdgeInsets.all(10),
+                                        backgroundColor: Colors.white.withOpacity(0.8),
+                                      ),
+                                      child: const Icon(Icons.arrow_forward, color: Colors.black),
                                     ),
                                   ],
-                                ],
-                              ),
+                                ),
                             ],
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
