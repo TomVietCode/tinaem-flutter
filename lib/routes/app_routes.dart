@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/auth/sign_in_screen.dart';
 import '../screens/auth/sign_up_screen.dart';
+import '../screens/auth/forgot_password_screen.dart'; // Thêm import cho ForgotPasswordScreen
 import '../components/persistent_tab_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/match/match.dart';
@@ -20,7 +21,7 @@ class AppRoutes {
   static const String chat = '/chat';
   static const String otherProfileDetails = '/other_profile_details_screen';
   static const String settings = '/settings';
-
+  static const String forgotPassword = '/forgot-password';
 
   static Map<String, WidgetBuilder> routes = {
     signIn: (context) => const SignInScreen(),
@@ -31,6 +32,7 @@ class AppRoutes {
     chatList: (context) => const ChatListScreen(),
     chat: (context) => const ChatScreen(),
     settings: (context) => const SettingsScreen(),
+    forgotPassword: (context) => const ForgotPasswordScreen(),
     otherProfileDetails: (context) {
       // Extract arguments from the navigator
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
