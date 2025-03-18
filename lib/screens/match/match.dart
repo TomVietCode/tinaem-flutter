@@ -1,24 +1,28 @@
-// lib/screens/match/match.dart
-
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../data.dart';
+import '../../services/firestore_service.dart';
 import 'match_details_screen.dart';
 
-class MatchScreen extends StatelessWidget {
+class MatchScreen extends StatefulWidget {
   const MatchScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final List<User> matches = currentUserMatches;
+  State<MatchScreen> createState() => _MatchScreenState();
+}
 
+class _MatchScreenState extends State<MatchScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+  String _currentFilter = 'matches'; // Mặc định hiển thị matches
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-
         title: Text(
           "Matches",
           style: GoogleFonts.poppins(
@@ -35,48 +39,126 @@ class MatchScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 10),
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _statsIcon(Icons.favorite, "Likes", "32"),
-                const SizedBox(width: 20),
-                _statsIcon(Icons.chat_bubble, "Connect", "15"),
+                StreamBuilder<int>(
+                  stream: _firestoreService.getLikesCount(),
+                  builder: (context, snapshot) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _currentFilter = 'likes';
+                        });
+                      },
+                      child: _statsIcon(Icons.favorite, "Likes", snapshot.data?.toString() ?? "0"),
+                    );
+                  },
+                ),
+                StreamBuilder<int>(
+                  stream: _firestoreService.getMyLikesCount(),
+                  builder: (context, snapshot) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _currentFilter = 'myLikes';
+                        });
+                      },
+                      child:
+                      _statsIcon(Icons.thumb_up, "My Likes", snapshot.data?.toString() ?? "0"),
+                    );
+                  },
+                ),
+                StreamBuilder<int>(
+                  stream: _firestoreService.getFavoritesCount(),
+                  builder: (context, snapshot) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _currentFilter = 'favorites';
+                        });
+                      },
+                      child:
+                      _statsIcon(Icons.star, "Favorites", snapshot.data?.toString() ?? "0"),
+                    );
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 20),
-            Text(
-              "Your Matches (${matches.length})",
-              style: GoogleFonts.poppins(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple.shade900,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Expanded(
-              child: GridView.builder(
-                physics: const BouncingScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.75,
-                ),
-                itemCount: matches.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              MatchDetailsScreen(matches[index]),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _currentFilter == 'matches'
+                  ? _firestoreService.getUserMatches()
+                  : _currentFilter == 'likes'
+                  ? _firestoreService.getUsersWhoLikedMe()
+                  : _currentFilter == 'myLikes'
+                  ? _firestoreService.getUsersILiked()
+                  : _firestoreService.getFavorites(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                log('Filter: $_currentFilter, Data length: ${snapshot.data?.length ?? 0}');
+                return Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Your ${_currentFilter == 'matches' ? 'Matches' : _currentFilter == 'likes' ? 'Likes' : _currentFilter == 'myLikes' ? 'My Likes' : 'Favorites'} (${snapshot.data?.length ?? 0})",
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.purple.shade900,
                         ),
-                      );
-                    },
-                    child: _matchCard(matches[index]),
-                  );
-                },
-              ),
+                      ),
+                      const SizedBox(height: 10),
+                      if (!snapshot.hasData || snapshot.data!.isEmpty)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              "No ${_currentFilter == 'matches' ? 'matches' : _currentFilter == 'likes' ? 'likes' : _currentFilter == 'myLikes' ? 'my likes' : 'favorites'} yet",
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: GridView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 0.75,
+                            ),
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              final user = _currentFilter == 'matches'
+                                  ? snapshot.data![index]['user']
+                                  : snapshot.data![index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MatchDetailsScreen(
+                                        user: user,
+                                        source: _currentFilter,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: _matchCard(user),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -94,11 +176,10 @@ class MatchScreen extends StatelessWidget {
             color: Colors.white,
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(
-                  color: Color(0xFFD483C7), blurRadius: 3, spreadRadius: 1)
+              BoxShadow(color: const Color(0xFFD483C7), blurRadius: 3, spreadRadius: 1),
             ],
           ),
-          child: Center(child: Icon(icon, color: Color(0xFFD483C7), size: 24)),
+          child: Center(child: Icon(icon, color: const Color(0xFFD483C7), size: 24)),
         ),
         const SizedBox(height: 5),
         Text(
@@ -113,20 +194,23 @@ class MatchScreen extends StatelessWidget {
     );
   }
 
-  Widget _matchCard(User user) {
+  Widget _matchCard(Map<String, dynamic> user) {
+    String displayImage = user['profile_picture'] ??
+        (user['photos']?.isNotEmpty == true ? user['photos'][0] : 'https://via.placeholder.com/150');
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFD483C7), width: 2),
       ),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 📌 Ảnh nền
           ClipRRect(
             borderRadius: BorderRadius.circular(14),
-            child: Image.asset(
-              user.photos[0],
+            child: Image.network(
+              displayImage,
               height: double.infinity,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -137,8 +221,6 @@ class MatchScreen extends StatelessWidget {
               ),
             ),
           ),
-
-          // 📌 Hiệu ứng mờ
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
@@ -146,41 +228,12 @@ class MatchScreen extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.15), // 🔥 Làm sáng hơn để dễ đọc chữ
+                  Colors.black.withOpacity(0.15),
                   Colors.black.withOpacity(0.5),
                 ],
               ),
             ),
           ),
-
-          // ✅ "100% Match" - Ở giữa trên cùng
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD483C7),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  "100% Match",
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // 📌 Thông tin người dùng
           Positioned(
             bottom: 12,
             left: 12,
@@ -188,40 +241,22 @@ class MatchScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 📌 Khoảng cách (border, màu be trong suốt 50%)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFBDA9AE).withOpacity(0.5), // 🔥 Màu be 50%
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    "${user.distance} away",
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white, // 🔥 Giữ chữ trắng để dễ đọc trên nền màu be
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 6), // Tạo khoảng cách
-
-                // 📌 Tên & Tuổi + Chấm tròn xanh
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      "${user.name}, ${user.age}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    Flexible(
+                      child: Text(
+                        "${user['name'] ?? 'Unknown'}, ${user['age'] ?? 'N/A'}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(width: 6),
-                    // 📌 Chấm xanh ngay sau tên
                     Container(
                       width: 8,
                       height: 8,
@@ -232,18 +267,16 @@ class MatchScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 4), // Khoảng cách trước location
-
-                // 📌 Location (Hiển thị ở dưới)
+                const SizedBox(height: 4),
                 Text(
-                  user.location.toUpperCase(),
+                  (user['location'] ?? 'Unknown').toUpperCase(),
                   style: GoogleFonts.poppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: Colors.white70,
                   ),
                   textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -252,5 +285,4 @@ class MatchScreen extends StatelessWidget {
       ),
     );
   }
-
 }

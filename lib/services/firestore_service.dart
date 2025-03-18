@@ -37,35 +37,6 @@ class FirestoreService {
     });
   }
 
-  // Thêm vào danh sách favorites
-  Future<void> addToFavorites(String favoriteUid) async {
-    String? currentUid = getCurrentUserUid();
-    if (currentUid == null) throw Exception('User not logged in');
-
-    await _firestore
-        .collection('users')
-        .doc(currentUid)
-        .collection('favorites')
-        .doc(favoriteUid)
-        .set({
-      'userId': favoriteUid,
-      'addedAt': Timestamp.now(),
-    });
-  }
-
-  // Lấy danh sách favorites
-  Future<List<String>> getFavorites() async {
-    String? currentUid = getCurrentUserUid();
-    if (currentUid == null) return [];
-
-    QuerySnapshot favorites = await _firestore
-        .collection('users')
-        .doc(currentUid)
-        .collection('favorites')
-        .get();
-    return favorites.docs.map((doc) => doc['userId'] as String).toList();
-  }
-
   // Ghi lại hành động quẹt
   Future<void> recordSwipe(String toUid, String direction) async {
     String? currentUid = getCurrentUserUid();
@@ -78,6 +49,20 @@ class FirestoreService {
       'direction': direction, // "right" hoặc "left"
       'timestamp': Timestamp.now(),
     }, SetOptions(merge: true)); // Ghi đè nếu đã tồn tại
+  }
+
+  // Xóa swipe từ người khác (dùng cho Nope)
+  Future<void> removeSwipeFromOther(String currentUid, String fromUid) async {
+    QuerySnapshot snapshot = await _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: fromUid)
+        .where('toUid', isEqualTo: currentUid)
+        .where('direction', isEqualTo: 'right')
+        .get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+      print('Removed swipe from $fromUid to $currentUid');
+    }
   }
 
   // Tạo Match
@@ -105,9 +90,49 @@ class FirestoreService {
     return matchId;
   }
 
+// Kiểm tra và tạo match khi cả hai Like nhau
+  Future<bool> checkAndCreateMatch(String toUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return false;
+
+    bool theyLikedMe = await hasUserLiked(toUid, currentUid);
+    if (theyLikedMe) {
+      String? matchId = await createMatch(toUid);
+      if (matchId != null) {
+        await createChat(toUid);
+        print('Match and chat created for $matchId');
+        return true;
+      }
+    }
+    return false;
+  }
   // Lấy matchId
   String _getMatchId(String uid1, String uid2) {
     return uid1.compareTo(uid2) < 0 ? '${uid1}_$uid2' : '${uid2}_$uid1';
+  }
+
+  // Lấy danh sách người dùng đã match
+  Stream<List<Map<String, dynamic>>> getUserMatches() async* {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      yield [];
+      return;
+    }
+    yield* _firestore
+        .collection('matches')
+        .where('users', arrayContains: currentUid)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> matches = [];
+      for (var doc in snapshot.docs) {
+        List<dynamic> users = doc['users'];
+        String otherUid = users.firstWhere((uid) => uid != currentUid);
+        Map<String, dynamic> userData = await getUser(otherUid);
+        // uid đã được thêm trong getUser
+        matches.add({'user': userData});
+      }
+      return matches;
+    });
   }
 
   // Kiểm tra xem có match không
@@ -204,8 +229,13 @@ class FirestoreService {
 
   // Lấy thông tin người dùng
   Future<Map<String, dynamic>> getUser(String uid) async {
-    DocumentSnapshot userDoc = await _firestore.collection('users').doc(uid).get();
-    return userDoc.data() as Map<String, dynamic>? ?? {'name': 'Không tên'};
+    DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+    if (!doc.exists) {
+      return {'uid': uid};
+    }
+    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    data['uid'] = uid;
+    return data;
   }
 
   // Lấy thông tin người dùng hiện tại
@@ -240,8 +270,172 @@ class FirestoreService {
 
     await _firestore.collection('users').doc(uid).update(data);
   }
+
   // Lấy UID người dùng hiện tại
   String? getCurrentUserUid() {
     return _authService.getCurrentUser()?.uid;
+  }
+
+  // Đếm số người đã like mình
+  Stream<int> getLikesCount() {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return Stream.value(0);
+    return _firestore
+        .collection('swipes')
+        .where('toUid', isEqualTo: currentUid)
+        .where('direction', isEqualTo: 'right')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // Lấy danh sách người đã like mình
+  Stream<List<Map<String, dynamic>>> getUsersWhoLikedMe() async* {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      yield [];
+      return;
+    }
+    yield* _firestore
+        .collection('swipes')
+        .where('toUid', isEqualTo: currentUid)
+        .where('direction', isEqualTo: 'right')
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> users = [];
+      for (var doc in snapshot.docs) {
+        String fromUid = doc['fromUid'];
+        Map<String, dynamic> userData = await getUser(fromUid);
+        // uid đã được thêm trong getUser
+        users.add(userData);
+      }
+      return users;
+    });
+  }
+
+  // Đếm số người mình đã like
+  Stream<int> getMyLikesCount() {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return Stream.value(0);
+    return _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: currentUid)
+        .where('direction', isEqualTo: 'right')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // Lấy danh sách người mình đã like
+  Stream<List<Map<String, dynamic>>> getUsersILiked() async* {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      yield [];
+      return;
+    }
+    yield* _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: currentUid)
+        .where('direction', isEqualTo: 'right')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> users = [];
+      for (var doc in snapshot.docs) {
+        String toUid = doc['toUid'];
+        Map<String, dynamic> userData = await getUser(toUid);
+        // uid đã được thêm trong getUser, không cần thêm lại
+        users.add(userData);
+      }
+      return users;
+    });
+  }
+
+  // Thêm người dùng vào favorites
+  Future<void> addToFavorites(String favoriteUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return;
+
+    await _firestore
+        .collection('favorites')
+        .doc(currentUid)
+        .collection('userFavorites')
+        .doc(favoriteUid)
+        .set({
+      'timestamp': Timestamp.now(),
+    });
+  }
+
+  // Đếm số người mình đã favorite
+  Stream<int> getFavoritesCount() {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return Stream.value(0);
+    return _firestore
+        .collection('favorites')
+        .doc(currentUid)
+        .collection('userFavorites')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // Lấy danh sách favorites
+  Stream<List<Map<String, dynamic>>> getFavorites() async* {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) {
+      yield [];
+      return;
+    }
+    yield* _firestore
+        .collection('favorites')
+        .doc(currentUid)
+        .collection('userFavorites')
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Map<String, dynamic>> users = [];
+      for (var doc in snapshot.docs) {
+        String uid = doc.id;
+        Map<String, dynamic> userData = await getUser(uid);
+        // uid đã được thêm trong getUser
+        users.add(userData);
+      }
+      return users;
+    });
+  }
+
+  // Xóa khỏi favorites
+  Future<void> removeFromFavorites(String favoriteUid) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return;
+    await _firestore
+        .collection('favorites')
+        .doc(currentUid)
+        .collection('userFavorites')
+        .doc(favoriteUid)
+        .delete();
+  }
+
+  // Xóa swipe (dùng cho Unlike)
+  Future<void> removeSwipe(String toUid, String direction) async {
+    String? currentUid = getCurrentUserUid();
+    if (currentUid == null) return;
+    QuerySnapshot snapshot = await _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: currentUid)
+        .where('toUid', isEqualTo: toUid)
+        .where('direction', isEqualTo: direction)
+        .get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  // Kiểm tra xem user đã Like người khác chưa
+  Future<bool> hasUserLiked(String fromUid, String toUid) async {
+    QuerySnapshot snapshot = await _firestore
+        .collection('swipes')
+        .where('fromUid', isEqualTo: fromUid)
+        .where('toUid', isEqualTo: toUid)
+        .where('direction', isEqualTo: 'right')
+        .get();
+    return snapshot.docs.isNotEmpty;
   }
 }
