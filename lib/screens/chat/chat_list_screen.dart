@@ -61,9 +61,9 @@ class ChatListScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                       child: Row(
                         children: [
-                          CircleAvatar(
+                          const CircleAvatar(
                             radius: 20,
-                            child: const CircularProgressIndicator(),
+                            child: CircularProgressIndicator(),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -90,11 +90,14 @@ class ChatListScreen extends StatelessWidget {
                   }
 
                   var user = userSnapshot.data!;
-                  String lastMessage = chat['last_message'] ?? 'No messages yet';
+                  String lastMessage = chat['last_message'] ?? '';
                   Timestamp? timestamp = chat['timestamp'] as Timestamp?;
                   String timeAgo = timestamp != null
                       ? _formatTimeAgo(timestamp.toDate())
                       : 'Just now';
+
+                  // Kiểm tra nếu chưa có tin nhắn
+                  bool isNewMatch = lastMessage.isEmpty;
 
                   return InkWell(
                     onTap: () {
@@ -107,51 +110,65 @@ class ChatListScreen extends StatelessWidget {
                         },
                       );
                     },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                      padding: EdgeInsets.all(isNewMatch ? 15 : 10), // Tăng padding cho thẻ lớn hơn
+                      decoration: BoxDecoration(
+                        color: isNewMatch ? Colors.green.withOpacity(0.1) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isNewMatch ? Colors.green : Colors.grey.shade300,
+                          width: isNewMatch ? 2 : 1,
+                        ),
+                      ),
                       child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           CircleAvatar(
-                            radius: 20,
+                            radius: isNewMatch ? 25 : 20, // Avatar lớn hơn khi match mới
                             backgroundImage: user['profile_picture'] != null
                                 ? NetworkImage(user['profile_picture'] as String)
                                 : null,
                             child: user['profile_picture'] == null
                                 ? Text(
                               (user['name'] ?? 'N/A')[0].toUpperCase(),
-                              style: const TextStyle(fontSize: 14),
+                              style: TextStyle(fontSize: isNewMatch ? 18 : 14),
                             )
                                 : null,
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   user['name'] ?? 'Không tên',
-                                  style: const TextStyle(
-                                    fontSize: 18,
+                                  style: TextStyle(
+                                    fontSize: isNewMatch ? 20 : 18, // Tên lớn hơn khi match mới
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
                                 Text(
-                                  lastMessage,
-                                  maxLines: 1,
+                                  isNewMatch
+                                      ? 'You have successfully match, lets talk!'
+                                      : lastMessage,
+                                  maxLines: 2, // Cho phép 2 dòng khi match mới để hiển thị đầy đủ
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
+                                  style: TextStyle(
+                                    fontSize: isNewMatch ? 16 : 14, // Chữ lớn hơn khi match mới
+                                    color: isNewMatch ? Colors.green : Colors.grey,
+                                    fontWeight: isNewMatch ? FontWeight.bold : FontWeight.normal,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Text(
                             timeAgo,
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: isNewMatch ? 14 : 12, // Thời gian lớn hơn khi match mới
                               color: Colors.grey,
                             ),
                           ),

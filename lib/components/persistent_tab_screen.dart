@@ -81,7 +81,7 @@ class _PersistentTabScreenState extends State<PersistentTabScreen> {
                       ),
                       GButton(
                         icon: CupertinoIcons.location,
-                        text: 'Match',
+                        text: 'Connection',
                       ),
                       GButton(
                         icon: CupertinoIcons.chat_bubble,

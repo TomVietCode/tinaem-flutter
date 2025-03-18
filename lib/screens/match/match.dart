@@ -24,7 +24,7 @@ class _MatchScreenState extends State<MatchScreen> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          "Matches",
+          "Connections",
           style: GoogleFonts.poppins(
             fontSize: 22,
             fontWeight: FontWeight.bold,

@@ -37,7 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               Image.asset("assets/tinder_logo.png", scale: 16),
               Text(
-                'TinaEm',
+                'Tinaem',
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.primary,
                   fontWeight: FontWeight.bold,

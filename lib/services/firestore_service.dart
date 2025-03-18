@@ -120,21 +120,19 @@ class FirestoreService {
     }
     yield* _firestore
         .collection('matches')
-        .where('users', arrayContains: currentUid)
+        .where('participants', arrayContains: currentUid) // Sửa từ 'users' thành 'participants'
         .snapshots()
         .asyncMap((snapshot) async {
       List<Map<String, dynamic>> matches = [];
       for (var doc in snapshot.docs) {
-        List<dynamic> users = doc['users'];
-        String otherUid = users.firstWhere((uid) => uid != currentUid);
+        List<dynamic> participants = doc['participants']; // Sửa từ 'users' thành 'participants'
+        String otherUid = participants.firstWhere((uid) => uid != currentUid);
         Map<String, dynamic> userData = await getUser(otherUid);
-        // uid đã được thêm trong getUser
         matches.add({'user': userData});
       }
       return matches;
     });
   }
-
   // Kiểm tra xem có match không
   Future<bool> isMatched(String otherUid) async {
     String? currentUid = getCurrentUserUid();
